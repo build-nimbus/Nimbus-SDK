@@ -1,0 +1,42 @@
+{
+  "name": "@nimbus/sdk",
+  "version": "0.1.0",
+  "description": "Token-gated access for any React app. Wallet ownership → verification → access.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.0",
+    "react": "^18.3.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.5.0"
+  },
+  "keywords": [
+    "solana",
+    "token-gating",
+    "web3",
+    "access-control",
+    "nimbus"
+  ]
+}
