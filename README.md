@@ -84,6 +84,50 @@ const { address } = useAccount();
 
 Chain is inferred from config or address format; pass `chain` explicitly to override.
 
+
+## Config file (one source of truth)
+
+```ts
+// nimbus.config.ts (project root)
+import { defineConfig } from "@nimbus/sdk";
+
+export default defineConfig({
+  communities: {
+    bonk: { mint: "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263", chain: "solana" },
+  },
+  tiers: {
+    whale:  { community: "bonk", minimum: 1000000 },
+    holder: { community: "bonk", minimum: 1 },
+  },
+});
+```
+
+```tsx
+import nimbusConfig from "../nimbus.config";
+
+<NimbusProvider apiUrl="..." config={nimbusConfig}>
+```
+
+Change a threshold in the config file and every `<NimbusGate tier="...">` on the site updates. `defineConfig` provides autocomplete and compile-time shape validation.
+
+## Using with your wallet stack
+
+The SDK detects injected wallets by default. If your app already manages wallets, pass the address down — that's the whole integration:
+
+```tsx
+// wagmi
+const { address } = useAccount();
+<NimbusProvider apiUrl="..." wallet={{ address: address ?? null }}>
+
+// Solana Wallet Adapter
+const { publicKey } = useWallet();
+<NimbusProvider apiUrl="..." wallet={{ address: publicKey?.toBase58() ?? null }}>
+
+// Privy
+const { user } = usePrivy();
+<NimbusProvider apiUrl="..." wallet={{ address: user?.wallet?.address ?? null }}>
+```
+
 ## Behavior notes
 
 - **Fails closed.** Loading, errors, disconnected wallets, and misconfigured gates render the locked state — never the content.
@@ -95,9 +139,21 @@ Chain is inferred from config or address format; pass `chain` explicitly to over
 - ✅ Phase 1 — `NimbusProvider`, `useNimbusWallet`, `useNimbusAccess`, `<NimbusGate style="block">`
 - ✅ Phase 2 — `useNimbusTier`, `<NimbusTier>` (+ `.Match` for custom tiers), `<NimbusWall>`, `<NimbusButton>`
 - ✅ Phase 3 — fade/blur gate styles (note: fade/blur render content in the DOM by design — teaser UX, not protection)
-- ⬜ Phase 4 — `nimbus.config.js` file loader
+- ✅ Phase 4 — config system (`defineConfig` + import pattern)
 - ⬜ Phase 5 — Pantheon swap
-- ⬜ Phase 6 — npm publish
+- ✅ Phase 6 — publish-ready (LICENSE, metadata, prepublish pipeline; awaiting scope/name decision + `npm publish`)
+
+## Troubleshooting
+
+**"useContext/useState only works in Client Components" in Next.js App Router** — fixed in 0.1.0 via build banner. All SDK components are client components; the `"use client"` directive is baked into the bundle, so importing `<NimbusGate>` directly into a Server Component file works. If you see this on an older build, rebuild the package.
+
+**Gate always locked / `hasAccess` always false** — check, in order: (1) is `<NimbusProvider apiUrl="...">` wrapping the tree? A missing provider throws; a wrong apiUrl fails closed. (2) Is a wallet connected or passed via the `wallet` prop? No wallet = locked, by design. (3) Open the Network tab — a CORS error means the API host hasn't allowed your origin.
+
+**Import errors after updating a locally-linked package** — restart your dev server and your editor's TypeScript server. Local-path installs are symlinks; both tools cache aggressively.
+
+**`Type '"blur"' has no properties in common with type 'Properties...'` when styling NimbusWall or NimbusButton** — the `style` prop means two different things in this SDK: on `<NimbusGate>` it selects the gate style (`"block" | "fade" | "blur"`); on `<NimbusWall>` and `<NimbusButton>` it's the standard React CSS style object for theming. Gate styles only exist on `NimbusGate` — a wall is already its own presentation.
+
+**`Type '""' is not assignable to type 'NimbusChain'`** — editor autocomplete tends to insert `chain=""`. An empty string isn't a chain; either pass a real value (`"solana"`, `"base"`, `"ethereum"`, `"polygon"`) or omit the prop and let detection/config decide.
 
 ## Build
 

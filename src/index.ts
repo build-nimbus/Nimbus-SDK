@@ -21,6 +21,9 @@ export { useNimbusAccess } from "./hooks/useNimbusAccess";
 export { useNimbusWallet } from "./hooks/useNimbusWallet";
 export { useNimbusTier } from "./hooks/useNimbusTier";
 
+// Config
+export { defineConfig } from "./lib/config";
+
 // Utilities
 export { detectChain } from "./lib/chain-detect";
 export { clearCache } from "./lib/cache";

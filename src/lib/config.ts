@@ -1,6 +1,32 @@
 import type { AccessQuery, NimbusConfig, NimbusChain } from "../types";
 
 /**
+ * defineConfig — typed helper for the developer's nimbus config file.
+ *
+ * Phase 4 reality check: the SDK runs client-side, so "loading
+ * nimbus.config.js from the project root" is an import, not filesystem
+ * magic. The pattern:
+ *
+ *   // nimbus.config.ts (project root)
+ *   import { defineConfig } from "@nimbus/sdk";
+ *   export default defineConfig({
+ *     communities: { bonk: { mint: "...", chain: "solana" } },
+ *     tiers: { whale: { community: "bonk", minimum: 1000000 } },
+ *   });
+ *
+ *   // app root
+ *   import nimbusConfig from "../nimbus.config";
+ *   <NimbusProvider apiUrl="..." config={nimbusConfig}>
+ *
+ * One source of truth: change a threshold in the config file and every
+ * <NimbusGate tier="..."> on the site updates. defineConfig exists for
+ * autocomplete and compile-time validation of the shape.
+ */
+export function defineConfig(config: NimbusConfig): NimbusConfig {
+  return config;
+}
+
+/**
  * Config resolution.
  *
  * Tiers and communities are indirection: a tier names a community + minimum,

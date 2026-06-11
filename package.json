@@ -1,7 +1,7 @@
 {
   "name": "@nimbus/sdk",
   "version": "0.1.0",
-  "description": "Token-gated access for any React app. Wallet ownership → verification → access.",
+  "description": "Token-gated access for any React app. Wallet ownership \u2192 verification \u2192 access.",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -21,7 +21,8 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run typecheck && npm run build"
   },
   "peerDependencies": {
     "react": ">=18"
@@ -38,5 +39,16 @@
     "web3",
     "access-control",
     "nimbus"
-  ]
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/NIMBUS_ORG/nimbus-sdk.git"
+  },
+  "homepage": "https://github.com/NIMBUS_ORG/nimbus-sdk#readme",
+  "bugs": {
+    "url": "https://github.com/NIMBUS_ORG/nimbus-sdk/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }
