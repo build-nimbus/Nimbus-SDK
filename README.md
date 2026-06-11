@@ -94,7 +94,7 @@ Chain is inferred from config or address format; pass `chain` explicitly to over
 
 - ✅ Phase 1 — `NimbusProvider`, `useNimbusWallet`, `useNimbusAccess`, `<NimbusGate style="block">`
 - ✅ Phase 2 — `useNimbusTier`, `<NimbusTier>` (+ `.Match` for custom tiers), `<NimbusWall>`, `<NimbusButton>`
-- ⬜ Phase 3 — fade/blur gate styles
+- ✅ Phase 3 — fade/blur gate styles (note: fade/blur render content in the DOM by design — teaser UX, not protection)
 - ⬜ Phase 4 — `nimbus.config.js` file loader
 - ⬜ Phase 5 — Pantheon swap
 - ⬜ Phase 6 — npm publish
