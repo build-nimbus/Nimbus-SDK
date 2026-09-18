@@ -16,7 +16,16 @@ import { useTotymAccess } from "./useTotymAccess";
  * both in one tree costs one network request, not two.
  */
 export function useTotymTier(
-  query: Pick<AccessQuery, "community" | "mint" | "contract" | "chain" | "minimum">
+  query: Pick<
+    AccessQuery,
+    | "community"
+    | "mint"
+    | "contract"
+    | "chain"
+    | "minimum"
+    | "gateType"
+    | "collectionAddress"
+  >
 ): string | null {
   const { tier, isLoading } = useTotymAccess(query);
   return isLoading ? null : tier;

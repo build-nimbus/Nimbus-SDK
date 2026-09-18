@@ -106,24 +106,37 @@ export function resolveQuery(
  * Derive the highest tier name a balance qualifies for, scoped to the
  * community this query belongs to. Falls back to "holder"/"none" when no
  * tier config exists, so `tier` is always a usable string.
+ *
+ * `isCreator` is not a convenience flag — without it this function is wrong.
+ * The creator bypass grants access without reading the chain, so the balance
+ * that arrives is 0, and a 0 clears no tier: a creator came back with
+ * `hasAccess: true` and `tier: "none"` at the same time. Any UI branching on
+ * the tier rather than on `hasAccess` — which is most of them, that being the
+ * point of tiers — hid the community from the person who owns it.
  */
 export function deriveTier(
   balance: number,
   hasAccess: boolean,
   communitySlug: string | undefined,
-  config: TotymConfig | undefined
+  config: TotymConfig | undefined,
+  isCreator: boolean = false
 ): string {
   const tiers = config?.tiers;
   if (tiers && communitySlug) {
     let best: { name: string; minimum: number } | null = null;
+    let top: { name: string; minimum: number } | null = null;
     for (const [name, tier] of Object.entries(tiers)) {
       if (tier.community !== communitySlug) continue;
+      if (!top || tier.minimum > top.minimum) top = { name, minimum: tier.minimum };
       if (balance >= tier.minimum && (!best || tier.minimum > best.minimum)) {
         best = { name, minimum: tier.minimum };
       }
     }
+    // The creator outranks every threshold defined against their own community.
+    if (isCreator && top) return top.name;
     if (best) return best.name;
     return "none";
   }
+  if (isCreator) return "holder";
   return hasAccess ? "holder" : "none";
 }

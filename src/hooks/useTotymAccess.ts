@@ -26,6 +26,7 @@ export function useTotymAccess(query: AccessQuery): AccessState {
   const [result, setResult] = useState<{
     hasAccess: boolean;
     balance: number;
+    isCreator: boolean;
   } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -96,7 +97,8 @@ export function useTotymAccess(query: AccessQuery): AccessState {
         result?.balance ?? 0,
         result?.hasAccess ?? false,
         resolved.query?.communitySlug,
-        config
+        config,
+        result?.isCreator ?? false
       ),
     [result, resolved.query?.communitySlug, config]
   );
@@ -104,6 +106,7 @@ export function useTotymAccess(query: AccessQuery): AccessState {
   return {
     hasAccess: result?.hasAccess ?? false,
     balance: result?.balance ?? 0,
+    isCreator: result?.isCreator ?? false,
     tier,
     isLoading,
     error,

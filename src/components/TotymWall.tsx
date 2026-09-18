@@ -32,7 +32,17 @@ import {
  */
 
 export interface TotymWallProps
-  extends Pick<AccessQuery, "community" | "mint" | "contract" | "chain" | "minimum" | "tier"> {
+  extends Pick<
+    AccessQuery,
+    | "community"
+    | "mint"
+    | "contract"
+    | "chain"
+    | "minimum"
+    | "tier"
+    | "gateType"
+    | "collectionAddress"
+  > {
   /** Custom message shown on the wall. */
   message?: string;
   /** Override the buy link. Defaults per chain (pump.fun / Uniswap). */

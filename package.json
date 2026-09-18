@@ -1,7 +1,7 @@
 {
   "name": "@totym/sdk",
   "version": "0.2.0",
-  "description": "Token-gated access for any React app. Wallet ownership \u2192 verification \u2192 access.",
+  "description": "Token-gated access for any React app. Wallet ownership → verification → access.",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -22,13 +22,15 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
-    "prepublishOnly": "npm run typecheck && npm run build"
+    "prepublishOnly": "npm run typecheck && npm test && npm run build",
+    "test": "esbuild scripts/verify-access.ts --bundle --platform=node --format=esm --outfile=.verify/verify-access.mjs --log-level=warning && node .verify/verify-access.mjs"
   },
   "peerDependencies": {
     "react": ">=18"
   },
   "devDependencies": {
     "@types/react": "^18.3.0",
+    "esbuild": "^0.27.0",
     "react": "^18.3.0",
     "tsup": "^8.0.0",
     "typescript": "^5.5.0"

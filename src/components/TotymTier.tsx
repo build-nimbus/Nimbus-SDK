@@ -33,7 +33,10 @@ interface TierContextValue {
 const TierContext = createContext<TierContextValue | null>(null);
 
 export interface TotymTierProps
-  extends Pick<AccessQuery, "community" | "mint" | "contract" | "chain"> {
+  extends Pick<
+    AccessQuery,
+    "community" | "mint" | "contract" | "chain" | "gateType" | "collectionAddress"
+  > {
   children: ReactNode;
 }
 

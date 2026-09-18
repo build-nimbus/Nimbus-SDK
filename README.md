@@ -69,8 +69,18 @@ import { TotymGate, useTotymAccess } from "@totym/sdk";
   premium content
 </TotymGate>
 
+// NFT gating — a Solana collection, or an ERC-721 contract
+<TotymGate gateType="nft" collectionAddress="COLLECTION_ADDRESS">
+  <HolderOnly />
+</TotymGate>
+
+<TotymGate gateType="nft" contract="0x..." chain="base">
+  <HolderOnly />
+</TotymGate>
+
 // Hook for custom UI
-const { hasAccess, balance, tier, isLoading, error } = useTotymAccess({ community: "bonk" });
+const { hasAccess, balance, tier, isCreator, isLoading, error } =
+  useTotymAccess({ community: "bonk" });
 ```
 
 ## Wallets
@@ -114,6 +124,17 @@ Not the same unit on both sides, and this bites:
 
 Balances above 2^53 also lose precision on the way through JSON, so treat the
 EVM `balance` as an ordering signal, not an exact figure.
+
+### NFT gates
+
+`gateType="nft"` works on both families:
+
+- **Solana** — pass `collectionAddress`. The API walks the wallet's assets and
+  checks collection membership.
+- **EVM** — pass `contract` and a `chain`. The API reads it as an ERC-721.
+
+ERC-1155 is not supported and is refused rather than attempted: its `balanceOf`
+takes a token id, which neither this query nor the endpoint accepts.
 
 
 ## Config file (one source of truth)
@@ -162,6 +183,7 @@ const { user } = usePrivy();
 ## Behavior notes
 
 - **Fails closed.** Loading, errors, disconnected wallets, and misconfigured gates render the locked state — never the content.
+- **Creators are let in without a balance read.** If the connected wallet created the community, the API grants access before touching the chain and returns `isCreator: true` with no balance. `balance` reads `0` in that case and means nothing — branch on `isCreator`, not on the number. `tier` resolves to the highest tier configured for that community, not `"none"`.
 - **Cached.** Results cache for 30s client-side; concurrent identical checks share one request. `clearCache()` is exported if you need a hard refresh.
 - Note: client-side gating hides UI, it does not protect data. Anything truly secret must be fetched from a server route that re-verifies access.
 

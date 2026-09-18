@@ -50,7 +50,12 @@ export interface AccessQuery {
   contract?: string;
   chain?: TotymChain;
   minimum?: number;
-  /** Token gate vs NFT gate (Solana). Defaults to "token". */
+  /**
+   * Token gate vs NFT gate. Defaults to "token".
+   *
+   * Both families honour it: on Solana it selects an SPL balance check or a
+   * collection membership check, and on EVM it selects `erc20` or `erc721`.
+   */
   gateType?: "token" | "nft";
   /** Gate by token amount or USD value (Solana). Defaults to "token_amount". */
   gateMode?: "token_amount" | "dollar_value";
@@ -61,12 +66,31 @@ export interface AccessQuery {
 /** Result of a verification call. */
 export interface AccessResult {
   hasAccess: boolean;
+  /**
+   * The wallet's balance, in whole tokens on Solana and in RAW BASE UNITS on
+   * EVM — the API returns `balanceOf` undivided, so one token of an 18-decimal
+   * ERC-20 is 1e18 here. `minimum` is compared in the same units, so a
+   * threshold written for one family does not transfer to the other.
+   *
+   * 0 when the API did not measure one. That happens on the creator bypass,
+   * which grants access without reading the chain; check `isCreator` before
+   * treating a 0 as "holds nothing".
+   */
   balance: number;
+  /**
+   * The connected wallet is the community's creator, so access was granted
+   * without a balance read. `balance` is 0 and means nothing in this case.
+   */
+  isCreator: boolean;
 }
 
 /** State returned by useTotymAccess. */
 export interface AccessState extends AccessResult {
-  /** Highest tier name the balance qualifies for, or "none". */
+  /**
+   * Highest tier name the balance qualifies for, or "none". A creator gets the
+   * highest tier configured for the community, not "none" — they hold the keys
+   * to it whether or not they hold the token.
+   */
   tier: string;
   isLoading: boolean;
   error: string | null;

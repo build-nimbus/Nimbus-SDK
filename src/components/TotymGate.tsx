@@ -46,6 +46,16 @@ export interface TotymGateProps {
   minimum?: number;
   /** Tier name from config. */
   tier?: string;
+  /**
+   * Gate on NFT ownership rather than a token balance. Default "token".
+   *
+   * Solana needs `collectionAddress` alongside it; EVM reads the `contract` as
+   * an ERC-721. Without this prop an NFT gate was unreachable from the
+   * components — only the hook could express one.
+   */
+  gateType?: "token" | "nft";
+  /** Solana NFT collection address. Required when gateType="nft" on Solana. */
+  collectionAddress?: string;
   /** Gate style. Default "block". */
   style?: "block" | "fade" | "blur";
   /**
@@ -68,12 +78,14 @@ export function TotymGate({
   chain,
   minimum,
   tier,
+  gateType,
+  collectionAddress,
   style = "block",
   fadeAt = "60%",
   fallback,
   message,
 }: TotymGateProps) {
-  const query: AccessQuery = { community, mint, contract, chain, minimum, tier };
+  const query: AccessQuery = { community, mint, contract, chain, minimum, tier, gateType, collectionAddress };
   const { hasAccess, isLoading } = useTotymAccess(query);
 
   if (hasAccess) return <>{children}</>;
