@@ -1,4 +1,4 @@
-# @nimbus/sdk
+# @totym/sdk
 
 Token-gated access for any React app.
 
@@ -6,24 +6,34 @@ Token-gated access for any React app.
 Wallet ownership → token verification → access → participation
 ```
 
-All verification is **server-side** via the Nimbus API. The SDK never makes blockchain calls and never trusts client-reported balances.
+All verification is **server-side** via the Totym API. The SDK never makes blockchain calls and never trusts client-reported balances.
 
 ## Install
 
 ```bash
-npm install @nimbus/sdk
+npm install @totym/sdk
 ```
 
 Zero runtime dependencies. React ≥18 peer dependency only.
+
+> **Renamed.** This package shipped as `@buildnimbus/sdk@0.1.0`. Everything the
+> SDK exports carried a `Nimbus` prefix and now carries `Totym`:
+> `NimbusProvider` → `TotymProvider`, `useNimbusAccess` → `useTotymAccess`, and
+> so on for all eight exports. Nothing else changed — same props, same return
+> shapes, same API endpoints. A find-and-replace of `Nimbus` → `Totym` plus the
+> new package name is the whole migration.
+>
+> `@buildnimbus/sdk@0.1.0` stays on npm and keeps working; it will not get
+> further releases.
 
 ## Quickstart
 
 ```tsx
 // app/providers.tsx
-import { NimbusProvider } from "@nimbus/sdk";
+import { TotymProvider } from "@totym/sdk";
 
-<NimbusProvider
-  apiUrl="https://nimbus-seven-alpha.vercel.app"
+<TotymProvider
+  apiUrl="https://totym.io"
   config={{
     communities: {
       bonk: { mint: "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263", chain: "solana" },
@@ -35,32 +45,32 @@ import { NimbusProvider } from "@nimbus/sdk";
   }}
 >
   {children}
-</NimbusProvider>
+</TotymProvider>
 ```
 
 ```tsx
-import { NimbusGate, useNimbusAccess } from "@nimbus/sdk";
+import { TotymGate, useTotymAccess } from "@totym/sdk";
 
 // Component gating
-<NimbusGate tier="whale">
+<TotymGate tier="whale">
   <WhaleOnlyContent />
-</NimbusGate>
+</TotymGate>
 
 // Direct mint, no config needed
-<NimbusGate mint="TOKEN_ADDRESS" minimum={1000}>
+<TotymGate mint="TOKEN_ADDRESS" minimum={1000}>
   <p>Holder-only content</p>
-</NimbusGate>
+</TotymGate>
 
 // Word-level gating
-<NimbusGate tier="holder">PROMO50</NimbusGate>
+<TotymGate tier="holder">PROMO50</TotymGate>
 
 // Custom non-holder UI
-<NimbusGate tier="holder" fallback={<UpgradePrompt />}>
+<TotymGate tier="holder" fallback={<UpgradePrompt />}>
   premium content
-</NimbusGate>
+</TotymGate>
 
 // Hook for custom UI
-const { hasAccess, balance, tier, isLoading, error } = useNimbusAccess({ community: "bonk" });
+const { hasAccess, balance, tier, isLoading, error } = useTotymAccess({ community: "bonk" });
 ```
 
 ## Wallets
@@ -73,23 +83,44 @@ The SDK bundles no wallet library. Two paths:
 // wagmi example (The Pantheon)
 const { address } = useAccount();
 
-<NimbusProvider apiUrl="..." wallet={{ address: address ?? null }}>
+<TotymProvider apiUrl="..." wallet={{ address: address ?? null }}>
 ```
 
 **No wallet setup** — the SDK detects injected providers (`window.solana`, `window.ethereum`) automatically.
 
 ## Chains
 
-`solana` (default) · `base` · `ethereum` · `polygon`
+**Verified today:** `solana` (default) · `ethereum` · `base`
+
+`polygon` is present in the `TotymChain` type and in `EVM_CHAIN_IDS`, but the
+API does not serve it: `/api/check-access-evm` answers only chain ids `1`
+(Ethereum) and `8453` (Base), and returns a `400` naming what is served for
+anything else. A `<TotymGate chain="polygon">` therefore surfaces as an `error`
+and stays locked — it fails closed, but it does not work. Do not ship one until
+the endpoint serves 137.
 
 Chain is inferred from config or address format; pass `chain` explicitly to override.
+
+### What `minimum` counts
+
+Not the same unit on both sides, and this bites:
+
+- **Solana** — `minimum` is in whole tokens. The API returns the decimal-adjusted
+  `uiAmount`, so `minimum={1000}` means 1,000 tokens.
+- **EVM** — `minimum` is in raw base units. The API returns `balanceOf` verbatim,
+  undivided, so on an 18-decimal ERC-20 one token is `1000000000000000000`.
+  `minimum={1000}` there is a millionth of a millionth of a token, which every
+  holder clears.
+
+Balances above 2^53 also lose precision on the way through JSON, so treat the
+EVM `balance` as an ordering signal, not an exact figure.
 
 
 ## Config file (one source of truth)
 
 ```ts
-// nimbus.config.ts (project root)
-import { defineConfig } from "@nimbus/sdk";
+// totym.config.ts (project root)
+import { defineConfig } from "@totym/sdk";
 
 export default defineConfig({
   communities: {
@@ -103,12 +134,12 @@ export default defineConfig({
 ```
 
 ```tsx
-import nimbusConfig from "../nimbus.config";
+import totymConfig from "../totym.config";
 
-<NimbusProvider apiUrl="..." config={nimbusConfig}>
+<TotymProvider apiUrl="..." config={totymConfig}>
 ```
 
-Change a threshold in the config file and every `<NimbusGate tier="...">` on the site updates. `defineConfig` provides autocomplete and compile-time shape validation.
+Change a threshold in the config file and every `<TotymGate tier="...">` on the site updates. `defineConfig` provides autocomplete and compile-time shape validation.
 
 ## Using with your wallet stack
 
@@ -117,15 +148,15 @@ The SDK detects injected wallets by default. If your app already manages wallets
 ```tsx
 // wagmi
 const { address } = useAccount();
-<NimbusProvider apiUrl="..." wallet={{ address: address ?? null }}>
+<TotymProvider apiUrl="..." wallet={{ address: address ?? null }}>
 
 // Solana Wallet Adapter
 const { publicKey } = useWallet();
-<NimbusProvider apiUrl="..." wallet={{ address: publicKey?.toBase58() ?? null }}>
+<TotymProvider apiUrl="..." wallet={{ address: publicKey?.toBase58() ?? null }}>
 
 // Privy
 const { user } = usePrivy();
-<NimbusProvider apiUrl="..." wallet={{ address: user?.wallet?.address ?? null }}>
+<TotymProvider apiUrl="..." wallet={{ address: user?.wallet?.address ?? null }}>
 ```
 
 ## Behavior notes
@@ -136,24 +167,25 @@ const { user } = usePrivy();
 
 ## Phase status
 
-- ✅ Phase 1 — `NimbusProvider`, `useNimbusWallet`, `useNimbusAccess`, `<NimbusGate style="block">`
-- ✅ Phase 2 — `useNimbusTier`, `<NimbusTier>` (+ `.Match` for custom tiers), `<NimbusWall>`, `<NimbusButton>`
+- ✅ Phase 1 — `TotymProvider`, `useTotymWallet`, `useTotymAccess`, `<TotymGate style="block">`
+- ✅ Phase 2 — `useTotymTier`, `<TotymTier>` (+ `.Match` for custom tiers), `<TotymWall>`, `<TotymButton>`
 - ✅ Phase 3 — fade/blur gate styles (note: fade/blur render content in the DOM by design — teaser UX, not protection)
 - ✅ Phase 4 — config system (`defineConfig` + import pattern)
 - ⬜ Phase 5 — Pantheon swap
-- ✅ Phase 6 — publish-ready (LICENSE, metadata, prepublish pipeline; awaiting scope/name decision + `npm publish`)
+- ✅ Phase 6 — published to npm 2026-06-16 as `@buildnimbus/sdk@0.1.0`
+- ✅ Phase 7 — renamed to Totym (`@totym/sdk@0.2.0`)
 
 ## Troubleshooting
 
-**"useContext/useState only works in Client Components" in Next.js App Router** — fixed in 0.1.0 via build banner. All SDK components are client components; the `"use client"` directive is baked into the bundle, so importing `<NimbusGate>` directly into a Server Component file works. If you see this on an older build, rebuild the package.
+**"useContext/useState only works in Client Components" in Next.js App Router** — fixed in 0.1.0 via build banner. All SDK components are client components; the `"use client"` directive is baked into the bundle, so importing `<TotymGate>` directly into a Server Component file works. If you see this on an older build, rebuild the package.
 
-**Gate always locked / `hasAccess` always false** — check, in order: (1) is `<NimbusProvider apiUrl="...">` wrapping the tree? A missing provider throws; a wrong apiUrl fails closed. (2) Is a wallet connected or passed via the `wallet` prop? No wallet = locked, by design. (3) Open the Network tab — a CORS error means the API host hasn't allowed your origin.
+**Gate always locked / `hasAccess` always false** — check, in order: (1) is `<TotymProvider apiUrl="...">` wrapping the tree? A missing provider throws; a wrong apiUrl fails closed. (2) Is a wallet connected or passed via the `wallet` prop? No wallet = locked, by design. (3) Open the Network tab — a CORS error means the API host hasn't allowed your origin.
 
 **Import errors after updating a locally-linked package** — restart your dev server and your editor's TypeScript server. Local-path installs are symlinks; both tools cache aggressively.
 
-**`Type '"blur"' has no properties in common with type 'Properties...'` when styling NimbusWall or NimbusButton** — the `style` prop means two different things in this SDK: on `<NimbusGate>` it selects the gate style (`"block" | "fade" | "blur"`); on `<NimbusWall>` and `<NimbusButton>` it's the standard React CSS style object for theming. Gate styles only exist on `NimbusGate` — a wall is already its own presentation.
+**`Type '"blur"' has no properties in common with type 'Properties...'` when styling TotymWall or TotymButton** — the `style` prop means two different things in this SDK: on `<TotymGate>` it selects the gate style (`"block" | "fade" | "blur"`); on `<TotymWall>` and `<TotymButton>` it's the standard React CSS style object for theming. Gate styles only exist on `TotymGate` — a wall is already its own presentation.
 
-**`Type '""' is not assignable to type 'NimbusChain'`** — editor autocomplete tends to insert `chain=""`. An empty string isn't a chain; either pass a real value (`"solana"`, `"base"`, `"ethereum"`, `"polygon"`) or omit the prop and let detection/config decide.
+**`Type '""' is not assignable to type 'TotymChain'`** — editor autocomplete tends to insert `chain=""`. An empty string isn't a chain; either pass a real value (`"solana"`, `"base"`, `"ethereum"`, `"polygon"`) or omit the prop and let detection/config decide.
 
 ## Build
 

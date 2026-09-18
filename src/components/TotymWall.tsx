@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import type { AccessQuery, NimbusChain } from "../types";
-import { useNimbusContext } from "./NimbusProvider";
-import { useNimbusAccess } from "../hooks/useNimbusAccess";
-import { NimbusButton } from "./NimbusButton";
+import type { AccessQuery, TotymChain } from "../types";
+import { useTotymContext } from "./TotymProvider";
+import { useTotymAccess } from "../hooks/useTotymAccess";
+import { TotymButton } from "./TotymButton";
 import { resolveQuery } from "../lib/config";
 import {
   fetchTokenMetadata,
@@ -13,12 +13,12 @@ import {
 } from "../lib/metadata";
 
 /**
- * <NimbusWall> — drop-in full gate wall.
+ * <TotymWall> — drop-in full gate wall.
  *
- *   <NimbusWall community="bonk" />
+ *   <TotymWall community="bonk" />
  *
  * Renders token branding (name, symbol, image — pulled live from the
- * Nimbus metadata API), a connect-wallet button, and a buy CTA. If the
+ * Totym metadata API), a connect-wallet button, and a buy CTA. If the
  * connected wallet already has access, renders nothing — the wall only
  * exists for outsiders.
  *
@@ -31,7 +31,7 @@ import {
  * through for host theming.
  */
 
-export interface NimbusWallProps
+export interface TotymWallProps
   extends Pick<AccessQuery, "community" | "mint" | "contract" | "chain" | "minimum" | "tier"> {
   /** Custom message shown on the wall. */
   message?: string;
@@ -41,15 +41,15 @@ export interface NimbusWallProps
   style?: CSSProperties;
 }
 
-export function NimbusWall({
+export function TotymWall({
   message,
   buyUrl,
   className,
   style,
   ...query
-}: NimbusWallProps) {
-  const { apiUrl, config } = useNimbusContext();
-  const { hasAccess, isLoading } = useNimbusAccess(query);
+}: TotymWallProps) {
+  const { apiUrl, config } = useTotymContext();
+  const { hasAccess, isLoading } = useTotymAccess(query);
   const [meta, setMeta] = useState<TokenMetadata | null>(null);
 
   // Resolve once so metadata fetch and buy URL share the same target.
@@ -102,7 +102,7 @@ export function NimbusWall({
       </div>
 
       <div style={s.actions}>
-        <NimbusButton
+        <TotymButton
           chain={resolved?.chain === "solana" ? "solana" : resolved ? "evm" : "both"}
         />
         {href && (

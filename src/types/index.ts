@@ -1,18 +1,18 @@
 /**
- * @nimbus/sdk — shared types
+ * @totym/sdk — shared types
  *
  * These types are the public contract of the SDK. Changing them is a
  * breaking change; add, don't mutate.
  */
 
 /** Chains the SDK can verify against. */
-export type NimbusChain = "solana" | "base" | "ethereum" | "polygon";
+export type TotymChain = "solana" | "base" | "ethereum" | "polygon";
 
 /** Wallet ecosystems (a wallet is either Solana-native or EVM-native). */
 export type WalletKind = "solana" | "evm";
 
-/** EVM chain IDs the Nimbus API understands. */
-export const EVM_CHAIN_IDS: Record<Exclude<NimbusChain, "solana">, number> = {
+/** EVM chain IDs the Totym API understands. */
+export const EVM_CHAIN_IDS: Record<Exclude<TotymChain, "solana">, number> = {
   base: 8453,
   ethereum: 1,
   polygon: 137,
@@ -23,7 +23,7 @@ export interface CommunityConfig {
   /** SPL mint (Solana) or contract address (EVM). */
   mint?: string;
   contract?: string;
-  chain?: NimbusChain;
+  chain?: TotymChain;
 }
 
 /** A named tier — references a community and sets a threshold. */
@@ -32,8 +32,8 @@ export interface TierConfig {
   minimum: number;
 }
 
-/** Inline config shape — mirrors nimbus.config.js (file loader lands in Phase 4). */
-export interface NimbusConfig {
+/** Inline config shape — mirrors totym.config.js (file loader lands in Phase 4). */
+export interface TotymConfig {
   communities?: Record<string, CommunityConfig>;
   tiers?: Record<string, TierConfig>;
 }
@@ -48,7 +48,7 @@ export interface AccessQuery {
   mint?: string;
   /** Direct EVM contract address (no config needed). */
   contract?: string;
-  chain?: NimbusChain;
+  chain?: TotymChain;
   minimum?: number;
   /** Token gate vs NFT gate (Solana). Defaults to "token". */
   gateType?: "token" | "nft";
@@ -64,7 +64,7 @@ export interface AccessResult {
   balance: number;
 }
 
-/** State returned by useNimbusAccess. */
+/** State returned by useTotymAccess. */
 export interface AccessState extends AccessResult {
   /** Highest tier name the balance qualifies for, or "none". */
   tier: string;
@@ -72,7 +72,7 @@ export interface AccessState extends AccessResult {
   error: string | null;
 }
 
-/** State returned by useNimbusWallet. */
+/** State returned by useTotymWallet. */
 export interface WalletState {
   address: string | null;
   connected: boolean;

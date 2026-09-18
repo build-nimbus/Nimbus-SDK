@@ -1,5 +1,5 @@
 import { EVM_CHAIN_IDS } from "../types";
-import type { NimbusChain } from "../types";
+import type { TotymChain } from "../types";
 import { cachedFetch, cacheKey } from "./cache";
 
 /**
@@ -9,7 +9,7 @@ import { cachedFetch, cacheKey } from "./cache";
  *   GET /api/token-metadata?mint=&network=
  *   GET /api/token-metadata-evm?contract=&chain_id=
  *
- * Used by <NimbusWall> to brand the gate wall without the developer
+ * Used by <TotymWall> to brand the gate wall without the developer
  * supplying anything beyond a mint/contract. Goes through the shared cache
  * (metadata changes even less often than balances).
  */
@@ -22,7 +22,7 @@ export interface TokenMetadata {
 
 export async function fetchTokenMetadata(
   apiUrl: string,
-  target: { mint?: string; contract?: string; chain: NimbusChain }
+  target: { mint?: string; contract?: string; chain: TotymChain }
 ): Promise<TokenMetadata> {
   const base = apiUrl.endsWith("/") ? apiUrl.slice(0, -1) : apiUrl;
 
@@ -35,7 +35,7 @@ export async function fetchTokenMetadata(
 
   return cachedFetch(cacheKey({ url }), async () => {
     const res = await fetch(url);
-    if (!res.ok) throw new Error(`[nimbus] Metadata fetch failed (${res.status})`);
+    if (!res.ok) throw new Error(`[totym] Metadata fetch failed (${res.status})`);
     const data = await res.json();
     return {
       name: data.name ?? null,
@@ -47,7 +47,7 @@ export async function fetchTokenMetadata(
 
 /** Default buy URL per chain — mirrors platform behavior. Overridable via prop. */
 export function defaultBuyUrl(
-  target: { mint?: string; contract?: string; chain: NimbusChain }
+  target: { mint?: string; contract?: string; chain: TotymChain }
 ): string {
   switch (target.chain) {
     case "base":

@@ -2,23 +2,23 @@
 
 import { useState, type CSSProperties } from "react";
 import type { WalletKind } from "../types";
-import { useNimbusContext } from "./NimbusProvider";
+import { useTotymContext } from "./TotymProvider";
 
 /**
- * <NimbusButton> — wallet connect button, styleable to match the host site.
+ * <TotymButton> — wallet connect button, styleable to match the host site.
  *
- *   <NimbusButton chain="solana" onConnect={(address) => ...} />
+ *   <TotymButton chain="solana" onConnect={(address) => ...} />
  *
  * chain="both" (default) renders a button per detected injected wallet —
  * a visitor with only Phantom sees one Solana button, not a dead EVM one.
  * If nothing is injected, renders a short "no wallet detected" notice.
  *
- * Note for hosts that pass `wallet` into NimbusProvider: you already have
+ * Note for hosts that pass `wallet` into TotymProvider: you already have
  * a connect flow — use your own button. This one drives the SDK's
  * injected-wallet detection path.
  */
 
-export interface NimbusButtonProps {
+export interface TotymButtonProps {
   onConnect?: (address: string) => void;
   chain?: "solana" | "evm" | "both";
   className?: string;
@@ -27,14 +27,14 @@ export interface NimbusButtonProps {
   label?: string;
 }
 
-export function NimbusButton({
+export function TotymButton({
   onConnect,
   chain = "both",
   className,
   style,
   label,
-}: NimbusButtonProps) {
-  const { connect, wallet } = useNimbusContext();
+}: TotymButtonProps) {
+  const { connect, wallet } = useTotymContext();
   const [busy, setBusy] = useState<WalletKind | null>(null);
 
   // Already connected — show the address, not another connect button.

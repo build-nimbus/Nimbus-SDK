@@ -2,26 +2,26 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { AccessQuery, AccessState } from "../types";
-import { useNimbusContext } from "../components/NimbusProvider";
+import { useTotymContext } from "../components/TotymProvider";
 import { resolveQuery, deriveTier } from "../lib/config";
 import { verifyAccess } from "../lib/verify";
 
 /**
- * useNimbusAccess — the core primitive of the SDK.
+ * useTotymAccess — the core primitive of the SDK.
  *
  * Wallet ownership → token verification → access.
  *
  * Resolves tier/community indirection via provider config, sends the check
- * to the Nimbus API (always server-side verification), and returns reactive
+ * to the Totym API (always server-side verification), and returns reactive
  * state. Results are cached for 30s and deduped across concurrent callers
  * by the verify layer, so it's safe to call this from many gates at once.
  *
  * Usage:
- *   const { hasAccess, balance, tier, isLoading } = useNimbusAccess({ community: "bonk" })
- *   const { hasAccess } = useNimbusAccess({ mint: "TOKEN_ADDRESS", minimum: 1000 })
+ *   const { hasAccess, balance, tier, isLoading } = useTotymAccess({ community: "bonk" })
+ *   const { hasAccess } = useTotymAccess({ mint: "TOKEN_ADDRESS", minimum: 1000 })
  */
-export function useNimbusAccess(query: AccessQuery): AccessState {
-  const { apiUrl, config, wallet } = useNimbusContext();
+export function useTotymAccess(query: AccessQuery): AccessState {
+  const { apiUrl, config, wallet } = useTotymContext();
 
   const [result, setResult] = useState<{
     hasAccess: boolean;

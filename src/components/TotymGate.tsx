@@ -8,11 +8,11 @@ import {
   type CSSProperties,
   type ReactNode,
 } from "react";
-import type { AccessQuery, NimbusChain } from "../types";
-import { useNimbusAccess } from "../hooks/useNimbusAccess";
+import type { AccessQuery, TotymChain } from "../types";
+import { useTotymAccess } from "../hooks/useTotymAccess";
 
 /**
- * <NimbusGate> — the core component primitive.
+ * <TotymGate> — the core component primitive.
  *
  * Wraps any React children and renders them only when the connected wallet
  * passes verification. Three gate styles:
@@ -33,7 +33,7 @@ import { useNimbusAccess } from "../hooks/useNimbusAccess";
  * gates all render the gated state, never the unlocked content.
  */
 
-export interface NimbusGateProps {
+export interface TotymGateProps {
   children: ReactNode;
   /** Community slug from config. */
   community?: string;
@@ -41,7 +41,7 @@ export interface NimbusGateProps {
   mint?: string;
   /** Direct EVM contract address. */
   contract?: string;
-  chain?: NimbusChain;
+  chain?: TotymChain;
   /** Minimum token balance. Default 1. */
   minimum?: number;
   /** Tier name from config. */
@@ -60,7 +60,7 @@ export interface NimbusGateProps {
   message?: string;
 }
 
-export function NimbusGate({
+export function TotymGate({
   children,
   community,
   mint,
@@ -72,9 +72,9 @@ export function NimbusGate({
   fadeAt = "60%",
   fallback,
   message,
-}: NimbusGateProps) {
+}: TotymGateProps) {
   const query: AccessQuery = { community, mint, contract, chain, minimum, tier };
-  const { hasAccess, isLoading } = useNimbusAccess(query);
+  const { hasAccess, isLoading } = useTotymAccess(query);
 
   if (hasAccess) return <>{children}</>;
 

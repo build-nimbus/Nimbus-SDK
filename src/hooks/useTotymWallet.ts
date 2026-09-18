@@ -1,10 +1,10 @@
 "use client";
 
 import type { WalletState } from "../types";
-import { useNimbusContext } from "../components/NimbusProvider";
+import { useTotymContext } from "../components/TotymProvider";
 
 /**
- * useNimbusWallet — the connected wallet, as the SDK sees it.
+ * useTotymWallet — the connected wallet, as the SDK sees it.
  *
  * Returns: { address, connected, chain }
  *
@@ -12,6 +12,6 @@ import { useNimbusContext } from "../components/NimbusProvider";
  * and overrides; this hook just exposes the result so components and
  * downstream hooks share one source of truth.
  */
-export function useNimbusWallet(): WalletState {
-  return useNimbusContext().wallet;
+export function useTotymWallet(): WalletState {
+  return useTotymContext().wallet;
 }

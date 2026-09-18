@@ -1,6 +1,6 @@
 {
-  "name": "@nimbus/sdk",
-  "version": "0.1.0",
+  "name": "@totym/sdk",
+  "version": "0.2.0",
   "description": "Token-gated access for any React app. Wallet ownership \u2192 verification \u2192 access.",
   "license": "MIT",
   "type": "module",
@@ -38,15 +38,15 @@
     "token-gating",
     "web3",
     "access-control",
-    "nimbus"
+    "totym"
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/NIMBUS_ORG/nimbus-sdk.git"
+    "url": "git+https://github.com/build-nimbus/Nimbus-SDK.git"
   },
-  "homepage": "https://github.com/NIMBUS_ORG/nimbus-sdk#readme",
+  "homepage": "https://github.com/build-nimbus/Nimbus-SDK#readme",
   "bugs": {
-    "url": "https://github.com/NIMBUS_ORG/nimbus-sdk/issues"
+    "url": "https://github.com/build-nimbus/Nimbus-SDK/issues"
   },
   "publishConfig": {
     "access": "public"

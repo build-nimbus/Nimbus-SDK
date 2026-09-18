@@ -7,7 +7,7 @@ import { cachedFetch, cacheKey } from "./cache";
  * Verification layer.
  *
  * Locked decision: verification is ALWAYS server-side. This module only
- * knows how to talk to the Nimbus API — it never touches RPC, never trusts
+ * knows how to talk to the Totym API — it never touches RPC, never trusts
  * a client-reported balance. The API decides; we relay.
  */
 
@@ -27,7 +27,7 @@ export async function verifyAccess(
   return cachedFetch(key, async () => {
     const res = await fetch(url);
     if (!res.ok) {
-      throw new Error(`[nimbus] Verification failed (${res.status})`);
+      throw new Error(`[totym] Verification failed (${res.status})`);
     }
     const data = (await res.json()) as Partial<AccessResult>;
     return {
