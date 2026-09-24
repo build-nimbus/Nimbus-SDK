@@ -6,26 +6,55 @@ import { cachedFetch, cacheKey } from "./cache";
 /**
  * Verification layer.
  *
- * Locked decision: verification is ALWAYS server-side. This module only
- * knows how to talk to the Totym API — it never touches RPC, never trusts
- * a client-reported balance. The API decides; we relay.
+ * The BALANCE is always server-side. This module never touches RPC and never
+ * trusts a client-reported holding — it asks the API and relays the answer.
+ *
+ * ── What that sentence used to leave out ────────────────────────────────────
+ *
+ * It read "verification is ALWAYS server-side", which invited the reading that
+ * the whole access decision was. It is not. Without a session, the ADDRESS is
+ * whatever the caller supplied, so the answer means "this address holds enough"
+ * and not "the visitor may come in". Anyone could read a whale's address off a
+ * block explorer and be told `hasAccess: true`. The API now says as much on
+ * every such response: `verified: false`.
+ *
+ * ── Two paths, and the caller picks by holding a token ──────────────────────
+ *
+ *   no token   →  /api/check-access       a balance lookup, verified: false
+ *   token      →  /api/sdk/access         a decision, verified: true
+ *
+ * The second has no `wallet` parameter at all; the address is read out of the
+ * token. Get one with `proveWallet()`.
+ *
+ * Either way this is presentation. Withholding data is `requireTotymAccess()`
+ * from `@totym/sdk/server` — see that module for why hiding is not protecting.
  */
 
 export async function verifyAccess(
   apiUrl: string,
   wallet: string,
-  query: ResolvedQuery
+  query: ResolvedQuery,
+  /** A session from `proveWallet()`. With one, the verified path is used. */
+  token?: string | null
 ): Promise<AccessResult> {
   const isEvm = query.chain !== "solana";
 
-  const url = isEvm
-    ? buildEvmUrl(apiUrl, wallet, query)
-    : buildSolanaUrl(apiUrl, wallet, query);
+  const url = token
+    ? buildVerifiedUrl(apiUrl, query, isEvm)
+    : isEvm
+      ? buildEvmUrl(apiUrl, wallet, query)
+      : buildSolanaUrl(apiUrl, wallet, query);
 
-  const key = cacheKey({ url });
+  /**
+   * The token is part of the cache key, not just the URL. The verified URL
+   * carries no wallet, so two different proved wallets asking about the same
+   * gate would otherwise share one cached answer — and the second would be
+   * told about the first one's holdings.
+   */
+  const key = cacheKey({ url, token: token ?? null });
 
   return cachedFetch(key, async () => {
-    const res = await fetch(url);
+    const res = await fetch(url, token ? { headers: { authorization: `Bearer ${token}` } } : undefined);
     if (!res.ok) {
       throw new Error(`[totym] Verification failed (${res.status})`);
     }
@@ -51,6 +80,28 @@ export async function verifyAccess(
       isCreator: Boolean(data.isCreator),
     };
   });
+}
+
+/**
+ * The verified endpoint. Note the absence of a wallet parameter — it does not
+ * accept one, and the address comes from the bearer token.
+ */
+function buildVerifiedUrl(apiUrl: string, q: ResolvedQuery, isEvm: boolean): string {
+  const params = new URLSearchParams();
+  if (isEvm) {
+    params.set("contract", q.contract ?? "");
+    params.set("chain_id", String(EVM_CHAIN_IDS[q.chain as keyof typeof EVM_CHAIN_IDS]));
+    params.set("gate_type", "erc20");
+    params.set("minimum", String(q.minimum));
+  } else {
+    params.set("mint", q.mint ?? "");
+    params.set("minimum", String(q.minimum));
+    params.set("gate_type", q.gateType);
+    params.set("gate_mode", q.gateMode);
+    if (q.minimumUsd != null) params.set("minimum_usd", String(q.minimumUsd));
+    if (q.collectionAddress) params.set("collection_address", q.collectionAddress);
+  }
+  return `${trimSlash(apiUrl)}/api/sdk/access?${params.toString()}`;
 }
 
 function buildSolanaUrl(

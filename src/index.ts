@@ -21,6 +21,10 @@ export { useTotymAccess } from "./hooks/useTotymAccess";
 export { useTotymWallet } from "./hooks/useTotymWallet";
 export { useTotymTier } from "./hooks/useTotymTier";
 
+// Wallet proof — the client half. The server half is `@totym/sdk/server`.
+export { proveWallet, TotymProofError } from "./lib/prove";
+export type { ProvedSession, SignMessage } from "./lib/prove";
+
 // Config
 export { defineConfig } from "./lib/config";
 
