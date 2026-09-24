@@ -1,0 +1,80 @@
+# Publish to npm from a button, not from somebody's laptop.
+#
+# Run it from the Actions tab: "Publish to npm" → Run workflow. It repeats
+# every check CI runs before it publishes anything, so a green run is the only
+# way a tarball leaves here.
+#
+# ── What it needs once ──────────────────────────────────────────────────────
+#
+#   NPM_TOKEN   a repository secret. npmjs.com → your avatar → Access Tokens →
+#               Generate New Token → Granular or Automation. It needs publish
+#               rights on the @totym scope.
+#
+# ── Why the version is an input ─────────────────────────────────────────────
+#
+# npm refuses to republish a version that already exists, and that refusal is
+# the whole safety mechanism. Rather than let the run fail halfway through on
+# it, the version is checked against the registry before anything is built, and
+# the run stops early with a message that says what to bump.
+name: Publish to npm
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Build and check, but do not publish"
+        type: boolean
+        default: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      - run: npm ci
+
+      - name: Refuse early if this version is already published
+        run: |
+          NAME=$(node -p "require('./package.json').name")
+          VERSION=$(node -p "require('./package.json').version")
+          echo "About to publish $NAME@$VERSION"
+          if npm view "$NAME@$VERSION" version >/dev/null 2>&1; then
+            echo "::error::$NAME@$VERSION is already on npm. Bump the version in package.json."
+            exit 1
+          fi
+          echo "$NAME@$VERSION is not on the registry yet — continuing."
+
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+      - name: The server entry must not be marked as client code
+        run: |
+          set -e
+          head -c 200 dist/index.js | grep -qF '"use client"' \
+            || { echo "dist/index.js is missing the \"use client\" banner"; exit 1; }
+          if head -c 200 dist/server.js | grep -qF '"use client"'; then
+            echo "dist/server.js carries \"use client\" — refusing to publish"
+            exit 1
+          fi
+
+      - name: What would ship
+        run: npm pack --dry-run
+
+      - name: Publish
+        if: ${{ !inputs.dry_run }}
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Not published
+        if: ${{ inputs.dry_run }}
+        run: echo "dry_run was set — everything above passed, nothing was published."
