@@ -1,0 +1,43 @@
+# Typecheck, test and build every push and pull request.
+#
+# The repository had no workflow at all, which the README said in as many
+# words. That is survivable while one person publishes by hand and remembers to
+# run things; it stops being survivable the moment a pull request arrives from
+# somebody who does not know the ritual.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+      # The failure this exists to catch is SILENT.
+      #
+      # `tsup.config.ts` is two builds: the client one stamps "use client" on
+      # the bundle, the server one must not. A server-only module marked as
+      # client code still runs, so nothing breaks loudly — it just quietly
+      # stops being the thing the separate entry point exists to guarantee.
+      - name: The server entry must not be marked as client code
+        run: |
+          set -e
+          head -c 200 dist/index.js | grep -qF '"use client"' \
+            || { echo "dist/index.js is missing the \"use client\" banner"; exit 1; }
+          if head -c 200 dist/server.js | grep -qF '"use client"'; then
+            echo "dist/server.js carries \"use client\" — the server entry is marked as client code"
+            exit 1
+          fi
+          echo "banner split is correct"
