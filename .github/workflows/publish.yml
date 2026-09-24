@@ -100,11 +100,44 @@ jobs:
       - name: What would ship
         run: npm pack --dry-run
 
+      # npm's own failures here are accurate and unhelpful. Each one is
+      # translated into the thing to go and change.
       - name: Publish
         if: ${{ !inputs.dry_run }}
-        run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set +e
+          out=$(npm publish 2>&1)
+          code=$?
+          echo "$out"
+          [ $code -eq 0 ] && exit 0
+
+          if echo "$out" | grep -q "EOTP"; then
+            echo "::error::This token cannot publish while two-factor authentication is on."
+            echo ""
+            echo "npm is asking for a one-time password, which no CI job can supply."
+            echo "The token is valid — it is the wrong KIND of token."
+            echo ""
+            echo "  Classic token / Publish     prompts for an OTP. Not usable here."
+            echo "  Classic token / Automation  bypasses 2FA. This is the one."
+            echo "  Granular access token       also works, with Read and write"
+            echo "                              permission on the @totym scope."
+            echo ""
+            echo "npmjs.com -> Access Tokens -> Generate New Token, then replace"
+            echo "the NPM_TOKEN secret. Nothing was published."
+            exit 1
+          fi
+
+          if echo "$out" | grep -qE "E403|Forbidden"; then
+            echo "::error::npm refused the publish (403)."
+            echo "Either the @totym scope does not exist yet — create it at"
+            echo "npmjs.com -> Add Organization — or this token has no publish"
+            echo "rights on it, or the name is taken by somebody else."
+            exit 1
+          fi
+
+          exit $code
 
       - name: Not published
         if: ${{ inputs.dry_run }}
