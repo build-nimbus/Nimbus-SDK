@@ -129,11 +129,30 @@ jobs:
             exit 1
           fi
 
+          # npm reports a missing SCOPE as a 404 on the package, which reads
+          # like the package is missing — of course it is, you are creating it.
+          # The words that matter are "Scope not found", further along the line.
+          if echo "$out" | grep -q "Scope not found"; then
+            echo "::error::The @totym scope does not exist on npm yet."
+            echo ""
+            echo "npm reports this as a 404 on the package, which is misleading:"
+            echo "the package is obviously not there, you are publishing it. The"
+            echo "scope is what is missing."
+            echo ""
+            echo "A scope is either an organization or a username. Create the"
+            echo "organization: npmjs.com -> avatar -> Add Organization -> name it"
+            echo "  totym  (no @). Free for public packages."
+            echo ""
+            echo "The token does not need replacing — it already authenticated"
+            echo "here, which is why this got as far as the registry. Nothing was"
+            echo "published."
+            exit 1
+          fi
+
           if echo "$out" | grep -qE "E403|Forbidden"; then
             echo "::error::npm refused the publish (403)."
-            echo "Either the @totym scope does not exist yet — create it at"
-            echo "npmjs.com -> Add Organization — or this token has no publish"
-            echo "rights on it, or the name is taken by somebody else."
+            echo "The scope exists but this token may not have publish rights on"
+            echo "it, or the name is taken by somebody else. Nothing was published."
             exit 1
           fi
 
