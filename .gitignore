@@ -2,3 +2,6 @@
 dist/
 *.tsbuildinfo
 .DS_Store
+
+# npm test builds its entry here
+.verify

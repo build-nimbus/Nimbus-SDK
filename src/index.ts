@@ -1,25 +1,29 @@
 /**
- * @nimbus/sdk — public API
+ * @totym/sdk — public API
  *
  * Wallet ownership → token verification → access → participation.
  */
 
 // Components
-export { NimbusProvider } from "./components/NimbusProvider";
-export type { NimbusProviderProps } from "./components/NimbusProvider";
-export { NimbusGate } from "./components/NimbusGate";
-export type { NimbusGateProps } from "./components/NimbusGate";
-export { NimbusTier } from "./components/NimbusTier";
-export type { NimbusTierProps, TierMatchProps } from "./components/NimbusTier";
-export { NimbusWall } from "./components/NimbusWall";
-export type { NimbusWallProps } from "./components/NimbusWall";
-export { NimbusButton } from "./components/NimbusButton";
-export type { NimbusButtonProps } from "./components/NimbusButton";
+export { TotymProvider } from "./components/TotymProvider";
+export type { TotymProviderProps } from "./components/TotymProvider";
+export { TotymGate } from "./components/TotymGate";
+export type { TotymGateProps } from "./components/TotymGate";
+export { TotymTier } from "./components/TotymTier";
+export type { TotymTierProps, TierMatchProps } from "./components/TotymTier";
+export { TotymWall } from "./components/TotymWall";
+export type { TotymWallProps } from "./components/TotymWall";
+export { TotymButton } from "./components/TotymButton";
+export type { TotymButtonProps } from "./components/TotymButton";
 
 // Hooks
-export { useNimbusAccess } from "./hooks/useNimbusAccess";
-export { useNimbusWallet } from "./hooks/useNimbusWallet";
-export { useNimbusTier } from "./hooks/useNimbusTier";
+export { useTotymAccess } from "./hooks/useTotymAccess";
+export { useTotymWallet } from "./hooks/useTotymWallet";
+export { useTotymTier } from "./hooks/useTotymTier";
+
+// Wallet proof — the client half. The server half is `@totym/sdk/server`.
+export { proveWallet, TotymProofError } from "./lib/prove";
+export type { ProvedSession, SignMessage } from "./lib/prove";
 
 // Config
 export { defineConfig } from "./lib/config";
@@ -30,9 +34,9 @@ export { clearCache } from "./lib/cache";
 
 // Types
 export type {
-  NimbusChain,
+  TotymChain,
   WalletKind,
-  NimbusConfig,
+  TotymConfig,
   CommunityConfig,
   TierConfig,
   AccessQuery,

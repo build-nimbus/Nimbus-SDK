@@ -9,15 +9,15 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { NimbusConfig, WalletState, WalletKind } from "../types";
+import type { TotymConfig, WalletState, WalletKind } from "../types";
 import { detectChain } from "../lib/chain-detect";
 
 /**
- * NimbusProvider — the SDK root.
+ * TotymProvider — the SDK root.
  *
  * Owns three things:
  *  1. API config (apiUrl, projectId) — where verification requests go.
- *  2. Tier/community config — inline for Phase 1; the nimbus.config.js
+ *  2. Tier/community config — inline for Phase 1; the totym.config.js
  *     loader (Phase 4) will feed the same shape.
  *  3. Wallet state — detected from injected providers, or supplied by the
  *     host via the `wallet` prop.
@@ -32,25 +32,25 @@ import { detectChain } from "../lib/chain-detect";
  * across bundlers — deferred until it earns its complexity.
  */
 
-interface NimbusContextValue {
+interface TotymContextValue {
   apiUrl: string;
   projectId?: string;
-  config?: NimbusConfig;
+  config?: TotymConfig;
   wallet: WalletState;
   /** Request connection from an injected wallet. Resolves to the address or null. */
   connect: (kind: WalletKind) => Promise<string | null>;
 }
 
-const NimbusContext = createContext<NimbusContextValue | null>(null);
+const TotymContext = createContext<TotymContextValue | null>(null);
 
-export interface NimbusProviderProps {
+export interface TotymProviderProps {
   children: ReactNode;
-  /** Base URL of the Nimbus API, e.g. "https://api.nimbus.xyz" or your proxy. */
+  /** Base URL of the Totym API, e.g. "https://totym.io" or your proxy. */
   apiUrl: string;
-  /** Project ID from the Nimbus dashboard. */
+  /** Project ID from the Totym dashboard. */
   projectId?: string;
-  /** Inline tier/community config (mirrors nimbus.config.js). */
-  config?: NimbusConfig;
+  /** Inline tier/community config (mirrors totym.config.js). */
+  config?: TotymConfig;
   /**
    * Wallet override. If your app already manages wallets (wallet-adapter,
    * wagmi, Privy), pass the connected address here and the SDK skips its
@@ -65,13 +65,13 @@ const DISCONNECTED: WalletState = {
   chain: null,
 };
 
-export function NimbusProvider({
+export function TotymProvider({
   children,
   apiUrl,
   projectId,
   config,
   wallet: walletOverride,
-}: NimbusProviderProps) {
+}: TotymProviderProps) {
   const [detected, setDetected] = useState<WalletState>(DISCONNECTED);
 
   const hasOverride = walletOverride !== undefined;
@@ -193,15 +193,15 @@ export function NimbusProvider({
   );
 
   return (
-    <NimbusContext.Provider value={value}>{children}</NimbusContext.Provider>
+    <TotymContext.Provider value={value}>{children}</TotymContext.Provider>
   );
 }
 
-export function useNimbusContext(): NimbusContextValue {
-  const ctx = useContext(NimbusContext);
+export function useTotymContext(): TotymContextValue {
+  const ctx = useContext(TotymContext);
   if (!ctx) {
     throw new Error(
-      "[nimbus] Missing <NimbusProvider>. Wrap your app root with it and pass apiUrl."
+      "[totym] Missing <TotymProvider>. Wrap your app root with it and pass apiUrl."
     );
   }
   return ctx;

@@ -8,11 +8,11 @@ import {
   type CSSProperties,
   type ReactNode,
 } from "react";
-import type { AccessQuery, NimbusChain } from "../types";
-import { useNimbusAccess } from "../hooks/useNimbusAccess";
+import type { AccessQuery, TotymChain } from "../types";
+import { useTotymAccess } from "../hooks/useTotymAccess";
 
 /**
- * <NimbusGate> — the core component primitive.
+ * <TotymGate> — the core component primitive.
  *
  * Wraps any React children and renders them only when the connected wallet
  * passes verification. Three gate styles:
@@ -33,7 +33,7 @@ import { useNimbusAccess } from "../hooks/useNimbusAccess";
  * gates all render the gated state, never the unlocked content.
  */
 
-export interface NimbusGateProps {
+export interface TotymGateProps {
   children: ReactNode;
   /** Community slug from config. */
   community?: string;
@@ -41,11 +41,21 @@ export interface NimbusGateProps {
   mint?: string;
   /** Direct EVM contract address. */
   contract?: string;
-  chain?: NimbusChain;
+  chain?: TotymChain;
   /** Minimum token balance. Default 1. */
   minimum?: number;
   /** Tier name from config. */
   tier?: string;
+  /**
+   * Gate on NFT ownership rather than a token balance. Default "token".
+   *
+   * Solana needs `collectionAddress` alongside it; EVM reads the `contract` as
+   * an ERC-721. Without this prop an NFT gate was unreachable from the
+   * components — only the hook could express one.
+   */
+  gateType?: "token" | "nft";
+  /** Solana NFT collection address. Required when gateType="nft" on Solana. */
+  collectionAddress?: string;
   /** Gate style. Default "block". */
   style?: "block" | "fade" | "blur";
   /**
@@ -60,7 +70,7 @@ export interface NimbusGateProps {
   message?: string;
 }
 
-export function NimbusGate({
+export function TotymGate({
   children,
   community,
   mint,
@@ -68,13 +78,15 @@ export function NimbusGate({
   chain,
   minimum,
   tier,
+  gateType,
+  collectionAddress,
   style = "block",
   fadeAt = "60%",
   fallback,
   message,
-}: NimbusGateProps) {
-  const query: AccessQuery = { community, mint, contract, chain, minimum, tier };
-  const { hasAccess, isLoading } = useNimbusAccess(query);
+}: TotymGateProps) {
+  const query: AccessQuery = { community, mint, contract, chain, minimum, tier, gateType, collectionAddress };
+  const { hasAccess, isLoading } = useTotymAccess(query);
 
   if (hasAccess) return <>{children}</>;
 

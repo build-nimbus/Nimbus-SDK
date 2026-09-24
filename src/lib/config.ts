@@ -1,28 +1,28 @@
-import type { AccessQuery, NimbusConfig, NimbusChain } from "../types";
+import type { AccessQuery, TotymConfig, TotymChain } from "../types";
 
 /**
- * defineConfig — typed helper for the developer's nimbus config file.
+ * defineConfig — typed helper for the developer's totym config file.
  *
  * Phase 4 reality check: the SDK runs client-side, so "loading
- * nimbus.config.js from the project root" is an import, not filesystem
+ * totym.config.js from the project root" is an import, not filesystem
  * magic. The pattern:
  *
- *   // nimbus.config.ts (project root)
- *   import { defineConfig } from "@nimbus/sdk";
+ *   // totym.config.ts (project root)
+ *   import { defineConfig } from "@totym/sdk";
  *   export default defineConfig({
  *     communities: { bonk: { mint: "...", chain: "solana" } },
  *     tiers: { whale: { community: "bonk", minimum: 1000000 } },
  *   });
  *
  *   // app root
- *   import nimbusConfig from "../nimbus.config";
- *   <NimbusProvider apiUrl="..." config={nimbusConfig}>
+ *   import totymConfig from "../totym.config";
+ *   <TotymProvider apiUrl="..." config={totymConfig}>
  *
  * One source of truth: change a threshold in the config file and every
- * <NimbusGate tier="..."> on the site updates. defineConfig exists for
+ * <TotymGate tier="..."> on the site updates. defineConfig exists for
  * autocomplete and compile-time validation of the shape.
  */
-export function defineConfig(config: NimbusConfig): NimbusConfig {
+export function defineConfig(config: TotymConfig): TotymConfig {
   return config;
 }
 
@@ -33,15 +33,15 @@ export function defineConfig(config: NimbusConfig): NimbusConfig {
  * a community names a mint/contract + chain. This module flattens that
  * indirection into a concrete query the verify layer can execute.
  *
- * Phase 1 accepts config inline via <NimbusProvider config={...}>.
- * The nimbus.config.js file loader is Phase 4 — it will produce this same
- * NimbusConfig shape, so nothing downstream changes.
+ * Phase 1 accepts config inline via <TotymProvider config={...}>.
+ * The totym.config.js file loader is Phase 4 — it will produce this same
+ * TotymConfig shape, so nothing downstream changes.
  */
 
 export interface ResolvedQuery {
   mint?: string;
   contract?: string;
-  chain: NimbusChain;
+  chain: TotymChain;
   minimum: number;
   gateType: "token" | "nft";
   gateMode: "token_amount" | "dollar_value";
@@ -53,7 +53,7 @@ export interface ResolvedQuery {
 
 export function resolveQuery(
   query: AccessQuery,
-  config: NimbusConfig | undefined
+  config: TotymConfig | undefined
 ): ResolvedQuery {
   let { mint, contract, chain, minimum } = query;
   let communitySlug = query.community;
@@ -63,7 +63,7 @@ export function resolveQuery(
     const tier = config?.tiers?.[query.tier];
     if (!tier) {
       throw new Error(
-        `[nimbus] Unknown tier "${query.tier}". Define it in your NimbusProvider config.`
+        `[totym] Unknown tier "${query.tier}". Define it in your TotymProvider config.`
       );
     }
     communitySlug = tier.community;
@@ -75,7 +75,7 @@ export function resolveQuery(
     const community = config?.communities?.[communitySlug];
     if (!community) {
       throw new Error(
-        `[nimbus] Unknown community "${communitySlug}". Define it in your NimbusProvider config.`
+        `[totym] Unknown community "${communitySlug}". Define it in your TotymProvider config.`
       );
     }
     mint = mint ?? community.mint;
@@ -85,7 +85,7 @@ export function resolveQuery(
 
   if (!mint && !contract) {
     throw new Error(
-      `[nimbus] Access query needs a target: pass mint, contract, community, or tier.`
+      `[totym] Access query needs a target: pass mint, contract, community, or tier.`
     );
   }
 
@@ -106,24 +106,37 @@ export function resolveQuery(
  * Derive the highest tier name a balance qualifies for, scoped to the
  * community this query belongs to. Falls back to "holder"/"none" when no
  * tier config exists, so `tier` is always a usable string.
+ *
+ * `isCreator` is not a convenience flag — without it this function is wrong.
+ * The creator bypass grants access without reading the chain, so the balance
+ * that arrives is 0, and a 0 clears no tier: a creator came back with
+ * `hasAccess: true` and `tier: "none"` at the same time. Any UI branching on
+ * the tier rather than on `hasAccess` — which is most of them, that being the
+ * point of tiers — hid the community from the person who owns it.
  */
 export function deriveTier(
   balance: number,
   hasAccess: boolean,
   communitySlug: string | undefined,
-  config: NimbusConfig | undefined
+  config: TotymConfig | undefined,
+  isCreator: boolean = false
 ): string {
   const tiers = config?.tiers;
   if (tiers && communitySlug) {
     let best: { name: string; minimum: number } | null = null;
+    let top: { name: string; minimum: number } | null = null;
     for (const [name, tier] of Object.entries(tiers)) {
       if (tier.community !== communitySlug) continue;
+      if (!top || tier.minimum > top.minimum) top = { name, minimum: tier.minimum };
       if (balance >= tier.minimum && (!best || tier.minimum > best.minimum)) {
         best = { name, minimum: tier.minimum };
       }
     }
+    // The creator outranks every threshold defined against their own community.
+    if (isCreator && top) return top.name;
     if (best) return best.name;
     return "none";
   }
+  if (isCreator) return "holder";
   return hasAccess ? "holder" : "none";
 }
