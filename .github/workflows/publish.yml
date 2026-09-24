@@ -39,6 +39,37 @@ jobs:
           cache: npm
           registry-url: https://registry.npmjs.org
 
+      # Fail in five seconds, not forty, and say which of the four it is.
+      #
+      # The first run of this workflow got `npm error code ENEEDAUTH` after a
+      # clean install, typecheck, 19 tests, a build and a packed tarball —
+      # because NODE_AUTH_TOKEN was EMPTY. That is a different fault from a bad
+      # token, which fails with E401 or E403, and npm's message does not
+      # distinguish them: "you need to authorize this machine" reads like the
+      # token is wrong when the truth is that no token arrived.
+      - name: The publish token must actually be present
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -z "$NPM_TOKEN" ]; then
+            echo "::error::The NPM_TOKEN secret is empty or not visible to this job."
+            echo ""
+            echo "It is reaching the runner as an empty string, which is what an"
+            echo "unset secret looks like. Four things cause that:"
+            echo ""
+            echo "  1. The name does not match. It must be exactly NPM_TOKEN."
+            echo "  2. It was added under the Variables tab, not Secrets. That"
+            echo "     page has both, side by side, and a variable is not a secret."
+            echo "  3. It was added as an Environment secret. This job declares no"
+            echo "     environment, so it cannot see one."
+            echo "  4. It is an organization secret whose repository access does"
+            echo "     not include this repository."
+            echo ""
+            echo "Settings -> Secrets and variables -> Actions -> Secrets tab."
+            exit 1
+          fi
+          echo "NPM_TOKEN is present (${#NPM_TOKEN} characters). Not printing it."
+
       - run: npm ci
 
       - name: Refuse early if this version is already published
@@ -69,11 +100,44 @@ jobs:
       - name: What would ship
         run: npm pack --dry-run
 
+      # npm's own failures here are accurate and unhelpful. Each one is
+      # translated into the thing to go and change.
       - name: Publish
         if: ${{ !inputs.dry_run }}
-        run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set +e
+          out=$(npm publish 2>&1)
+          code=$?
+          echo "$out"
+          [ $code -eq 0 ] && exit 0
+
+          if echo "$out" | grep -q "EOTP"; then
+            echo "::error::This token cannot publish while two-factor authentication is on."
+            echo ""
+            echo "npm is asking for a one-time password, which no CI job can supply."
+            echo "The token is valid — it is the wrong KIND of token."
+            echo ""
+            echo "  Classic token / Publish     prompts for an OTP. Not usable here."
+            echo "  Classic token / Automation  bypasses 2FA. This is the one."
+            echo "  Granular access token       also works, with Read and write"
+            echo "                              permission on the @totym scope."
+            echo ""
+            echo "npmjs.com -> Access Tokens -> Generate New Token, then replace"
+            echo "the NPM_TOKEN secret. Nothing was published."
+            exit 1
+          fi
+
+          if echo "$out" | grep -qE "E403|Forbidden"; then
+            echo "::error::npm refused the publish (403)."
+            echo "Either the @totym scope does not exist yet — create it at"
+            echo "npmjs.com -> Add Organization — or this token has no publish"
+            echo "rights on it, or the name is taken by somebody else."
+            exit 1
+          fi
+
+          exit $code
 
       - name: Not published
         if: ${{ inputs.dry_run }}
