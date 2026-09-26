@@ -12,7 +12,28 @@ import type { AccessQuery, TotymChain } from "../types";
 import { useTotymAccess } from "../hooks/useTotymAccess";
 
 /**
- * <TotymGate> — the core component primitive.
+ * <TotymReveal> — reveal content to holders, in the browser.
+ *
+ * ── Why this is not called TotymGate any more ────────────────────────────────
+ *
+ * It was, and the name was the problem. A component called `TotymGate` reads as a
+ * boundary, and this is not one: it decides what to SHOW. The content it hides was
+ * already sent to the visitor's machine, so `view-source` reads it whatever this
+ * decides — including under `style="block"`, which keeps children out of the DOM and
+ * therefore out of devtools. Devtools is the wrong place to check, and a name that
+ * promises protection sends people to check the wrong place.
+ *
+ * `TotymGate` remains as a deprecated alias so nothing breaks. For a refusal that
+ * withholds bytes, use `TotymServerGate` from `@totym/sdk/rsc`.
+ *
+ * ── What this is genuinely for ──────────────────────────────────────────────
+ *
+ * Teasers, previews and marketing surfaces — anywhere you want a visitor to see what
+ * they are missing without being asked to sign a message first. It needs no signature
+ * and no cookie: it reads a public address and asks the API what that address holds,
+ * which is why every such answer carries `verified: false`. That is a real capability
+ * and the reason this component still exists.
+ *
  *
  * Wraps any React children and renders them only when the connected wallet
  * passes verification. Three gate styles:
@@ -22,18 +43,34 @@ import { useTotymAccess } from "../hooks/useTotymAccess";
  *           gate CTA floats below. Teaser UX for long-form content.
  *   blur  — content visible but unreadable, lock UI overlaid.
  *
- * IMPORTANT — what each style protects:
- * "block" keeps children out of the DOM for non-holders. "fade" and "blur"
- * RENDER children and obscure them visually — the content exists in the
- * page source by design (you can't fade what isn't rendered). Use fade/blur
- * for conversion teasers. Anything genuinely secret must be fetched from a
- * server route that re-verifies access, regardless of style.
+ * IMPORTANT — what each style protects, and it is less than it sounds:
+ *
+ *   "fade" and "blur" RENDER children and obscure them visually. The content is in
+ *   the page source by design — you cannot fade what is not there. Teasers only.
+ *
+ *   "block" keeps children out of the DOM. It does NOT keep them out of the
+ *   RESPONSE. In a React Server Components app the server serializes a client
+ *   component's children into the flight payload before the client component runs,
+ *   so this gate can refuse to MOUNT them and cannot un-send them. Measured on a
+ *   real Next App Router build: the text behind a blocked gate is absent from the
+ *   rendered markup and present in the response body. `view-source` finds it;
+ *   devtools does not.
+ *
+ * That last sentence is why this comment was rewritten. It used to attach "the
+ * content exists in the page source" to fade and blur only, which implies that
+ * under "block" it does not. A developer who put real content behind "block",
+ * checked devtools and saw nothing would have been reassured by the wrong evidence.
+ *
+ * So: NONE of the three styles withholds bytes from a non-holder. Anything genuinely
+ * secret must be fetched from a server route that re-verifies — see
+ * `@totym/sdk/server` and `examples/clean-room/app/api/protected/route.ts`, where the
+ * payload is built after the check and a non-holder never receives it.
  *
  * Fails closed: loading, errors, disconnected wallets, and misconfigured
  * gates all render the gated state, never the unlocked content.
  */
 
-export interface TotymGateProps {
+export interface TotymRevealProps {
   children: ReactNode;
   /** Community slug from config. */
   community?: string;
@@ -70,7 +107,7 @@ export interface TotymGateProps {
   message?: string;
 }
 
-export function TotymGate({
+export function TotymReveal({
   children,
   community,
   mint,
@@ -84,7 +121,7 @@ export function TotymGate({
   fadeAt = "60%",
   fallback,
   message,
-}: TotymGateProps) {
+}: TotymRevealProps) {
   const query: AccessQuery = { community, mint, contract, chain, minimum, tier, gateType, collectionAddress };
   const { hasAccess, isLoading } = useTotymAccess(query);
 

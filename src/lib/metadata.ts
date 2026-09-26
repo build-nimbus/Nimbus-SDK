@@ -56,6 +56,18 @@ export function defaultBuyUrl(
       return `https://app.uniswap.org/explore/tokens/ethereum/${target.contract}`;
     case "polygon":
       return `https://app.uniswap.org/explore/tokens/polygon/${target.contract}`;
+    case "robinhood":
+      /**
+       * The explorer, not a DEX, and not a token page.
+       *
+       * No verified Uniswap deployment on chain 4663, and no token-page URL shape
+       * confirmed for Robinscan — the application stores only the explorer's base.
+       * Guessing `/token/<contract>` would give every Robinhood community a link
+       * that might 404, which is worse than a link to somewhere real and general.
+       *
+       * Pass `buyUrl` to override when you know better for your token.
+       */
+      return "https://robinscan.io";
     default:
       return `https://pump.fun/${target.mint}`;
   }

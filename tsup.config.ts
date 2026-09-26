@@ -38,4 +38,43 @@ export default defineConfig([
     clean: false,
     treeshake: false,
   },
+  {
+    // ── The parts with no client dependency ─────────────────────────────────
+    //
+    // No banner, for the same reason the server build has none, and found the same
+    // way: by building the documented pattern and watching it fail.
+    //
+    // `defineConfig` is an identity function. It was reachable only from the
+    // banner'd client bundle, so a `totym.config.ts` calling it at module scope and
+    // imported by a root layout — which is what the README describes — could not
+    // build in a Next App Router app. The whole config feature was unusable in the
+    // framework this package's documentation leads with, for all of 0.2.0.
+    //
+    // `clean` is false so this does not wipe either build above.
+    entry: ["src/config.ts"],
+    format: ["esm", "cjs"],
+    dts: true,
+    sourcemap: true,
+    clean: false,
+    treeshake: false,
+  },
+  {
+    // ── The React Server Components gate ────────────────────────────────────
+    //
+    // No banner, and it matters more here than anywhere else: this is the only gate in
+    // the package that withholds BYTES rather than hiding markup, and it does that by
+    // deciding on the server before it renders. A `"use client"` banner would move the
+    // decision back into the browser and quietly turn it into the thing it was written
+    // to replace.
+    //
+    // Separate from `src/server.ts` because that entry is framework-agnostic — no
+    // React, so it works in Express or Hono. This one is JSX.
+    entry: ["src/rsc.tsx"],
+    format: ["esm", "cjs"],
+    dts: true,
+    sourcemap: true,
+    clean: false,
+    treeshake: false,
+    external: ["react", "react/jsx-runtime"],
+  },
 ]);

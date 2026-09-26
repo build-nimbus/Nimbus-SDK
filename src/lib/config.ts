@@ -19,7 +19,7 @@ import type { AccessQuery, TotymConfig, TotymChain } from "../types";
  *   <TotymProvider apiUrl="..." config={totymConfig}>
  *
  * One source of truth: change a threshold in the config file and every
- * <TotymGate tier="..."> on the site updates. defineConfig exists for
+ * <TotymReveal tier="..."> on the site updates. defineConfig exists for
  * autocomplete and compile-time validation of the shape.
  */
 export function defineConfig(config: TotymConfig): TotymConfig {

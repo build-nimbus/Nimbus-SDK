@@ -31,6 +31,23 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      # Provenance. `id-token: write` lets the runner mint an OIDC token, which is
+      # what npm exchanges for a signed attestation binding the tarball to THIS
+      # repository, THIS commit and THIS workflow run.
+      #
+      # ── Why this is worth a permission ─────────────────────────────────────
+      #
+      # Without it, "the published package came from this source" is something a
+      # reader has to take on trust. `package.json` can claim any repository —
+      # nothing stops a tarball built anywhere from naming this one — and the whole
+      # argument for an SDK being independently verifiable falls over at the first
+      # step if the artifact cannot be tied to a commit.
+      #
+      # With it, `npm view @totym/sdk` shows a provenance block and the npm page
+      # links the exact run. A developer can check that the code they read is the
+      # code they installed, which is the only version of this claim that means
+      # anything.
+      id-token: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -100,6 +117,28 @@ jobs:
       - name: What would ship
         run: npm pack --dry-run
 
+      # The commit, recorded in the thing that ships.
+      #
+      # npm sets `gitHead` in the published metadata automatically when it
+      # publishes from a git checkout, and that is worth having — but it is not
+      # visible to somebody reading the tarball, and it is absent when a publish
+      # happens from an exported tree. Writing the commit into a file inside dist
+      # means the artifact itself says which commit built it, checkable with
+      # `cat node_modules/@totym/sdk/dist/BUILD`.
+      #
+      # Written AFTER the build on purpose: tsup clears dist, so a file written
+      # before it would be deleted by it.
+      - name: Record which commit built this
+        run: |
+          {
+            echo "name:    $(node -p "require('./package.json').name")"
+            echo "version: $(node -p "require('./package.json').version")"
+            echo "commit:  ${{ github.sha }}"
+            echo "repo:    ${{ github.server_url }}/${{ github.repository }}"
+            echo "run:     ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          } > dist/BUILD
+          cat dist/BUILD
+
       # npm's own failures here are accurate and unhelpful. Each one is
       # translated into the thing to go and change.
       - name: Publish
@@ -108,7 +147,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           set +e
-          out=$(npm publish 2>&1)
+          out=$(npm publish --provenance 2>&1)
           code=$?
           echo "$out"
           [ $code -eq 0 ] && exit 0
@@ -126,6 +165,26 @@ jobs:
             echo ""
             echo "npmjs.com -> Access Tokens -> Generate New Token, then replace"
             echo "the NPM_TOKEN secret. Nothing was published."
+            exit 1
+          fi
+
+          # Provenance has its own way of failing, and npm's message for it does
+          # not mention provenance at all.
+          if echo "$out" | grep -qiE "provenance|attestation|id-token|OIDC"; then
+            echo "::error::The publish failed while generating provenance."
+            echo ""
+            echo "Provenance needs three things, and npm names none of them:"
+            echo ""
+            echo "  1. id-token: write in this job's permissions block. It is there"
+            echo "     in the file — check it survived an edit."
+            echo "  2. A public repository. Provenance is not available for private"
+            echo "     ones."
+            echo "  3. npm 9.5 or newer on the runner. setup-node with node 20 is."
+            echo ""
+            echo "To publish WITHOUT provenance, drop --provenance from the command"
+            echo "below. Do that only deliberately: it removes the link between the"
+            echo "tarball and the commit it was built from, which is the thing that"
+            echo "makes this package checkable. Nothing was published."
             exit 1
           fi
 

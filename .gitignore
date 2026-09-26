@@ -1,7 +1,19 @@
-﻿node_modules/
+node_modules/
 dist/
 *.tsbuildinfo
 .DS_Store
 
 # npm test builds its entry here
 .verify
+
+# The clean-room example's build output, and the tarball CI packs into it.
+.next/
+*.tgz
+
+# The clean-room example resolves fresh on purpose.
+#
+# A committed lockfile would pin the transitive tree, and the question this example
+# answers is what a developer's FIRST install produces — including whatever npm
+# resolves today. CI rewrites the SDK dependency to the tarball it just built, which
+# a lockfile would also fight with.
+examples/clean-room/package-lock.json

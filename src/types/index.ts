@@ -5,16 +5,54 @@
  * breaking change; add, don't mutate.
  */
 
-/** Chains the SDK can verify against. */
-export type TotymChain = "solana" | "base" | "ethereum" | "polygon";
+/**
+ * Chains the SDK can verify against.
+ *
+ * ── This list was wrong in both directions until 0.3.0 ──────────────────────
+ *
+ * It named `polygon`, which the API refuses, and could not name Robinhood Chain,
+ * which the API serves. So a developer could write a gate that never works and
+ * could not write one that does — and the application's own chain list has been
+ * `solana | base | ethereum | robinhood` all along.
+ *
+ * `robinhood` is added here. `polygon` is left in place and marked deprecated
+ * rather than removed, because removing a member of a public union is a breaking
+ * change and this is not the release to make one quietly. It is announced now and
+ * removed later, on the schedule in VERSIONING.md.
+ *
+ * @see https://github.com/build-nimbus/Nimbus-SDK/blob/main/VERSIONING.md
+ */
+export type TotymChain =
+  | "solana"
+  | "base"
+  | "ethereum"
+  /**
+   * Chain id 4663, served by `/api/check-access-evm`. Added in 0.3.0; the SDK had
+   * no way to express it before, while the API had served it for months.
+   */
+  | "robinhood"
+  /**
+   * @deprecated The API does not serve chain id 137 and answers `400` for it, so a
+   * gate on this chain surfaces as an `error` and stays locked — it fails closed,
+   * and it does not work. Will be removed in a future minor; see VERSIONING.md.
+   */
+  | "polygon";
 
 /** Wallet ecosystems (a wallet is either Solana-native or EVM-native). */
 export type WalletKind = "solana" | "evm";
 
-/** EVM chain IDs the Totym API understands. */
+/**
+ * EVM chain IDs, by the name this SDK uses.
+ *
+ * `polygon` is here for as long as the type member is, and `137` is NOT served —
+ * see the note on `TotymChain`. Anything here that the API refuses produces an
+ * `error` rather than a denial, which is the correct way for it to fail and still
+ * not what the developer wanted.
+ */
 export const EVM_CHAIN_IDS: Record<Exclude<TotymChain, "solana">, number> = {
   base: 8453,
   ethereum: 1,
+  robinhood: 4663,
   polygon: 137,
 };
 

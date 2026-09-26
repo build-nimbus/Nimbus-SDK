@@ -1,6 +1,6 @@
 {
   "name": "@totym/sdk",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Token-gated access for any React app. Wallet ownership \u2192 verification \u2192 access.",
   "license": "MIT",
   "type": "module",
@@ -17,6 +17,16 @@
       "types": "./dist/server.d.ts",
       "import": "./dist/server.js",
       "require": "./dist/server.cjs"
+    },
+    "./config": {
+      "types": "./dist/config.d.ts",
+      "import": "./dist/config.js",
+      "require": "./dist/config.cjs"
+    },
+    "./rsc": {
+      "types": "./dist/rsc.d.ts",
+      "import": "./dist/rsc.js",
+      "require": "./dist/rsc.cjs"
     }
   },
   "files": [
@@ -27,9 +37,10 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
-    "prepublishOnly": "npm run typecheck && npm test && npm run build",
+    "prepublishOnly": "npm run typecheck && npm test && npm run build && npm run verify:surface",
     "test": "esbuild scripts/verify-access.ts --bundle --platform=node --format=esm --outfile=.verify/verify-access.mjs --log-level=warning && node .verify/verify-access.mjs",
-    "verify:wallet-proof": "node scripts/verify-wallet-proof.mjs"
+    "verify:wallet-proof": "node scripts/verify-wallet-proof.mjs",
+    "verify:surface": "node scripts/verify-surface.mjs"
   },
   "peerDependencies": {
     "react": ">=18"
@@ -50,11 +61,11 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/build-nimbus/nimbus-sdk.git"
+    "url": "git+https://github.com/build-nimbus/Nimbus-SDK.git"
   },
-  "homepage": "https://github.com/build-nimbus/nimbus-sdk#readme",
+  "homepage": "https://github.com/build-nimbus/Nimbus-SDK#readme",
   "bugs": {
-    "url": "https://github.com/build-nimbus/nimbus-sdk/issues"
+    "url": "https://github.com/build-nimbus/Nimbus-SDK/issues"
   },
   "publishConfig": {
     "access": "public"
