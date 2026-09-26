@@ -56,7 +56,17 @@ import {
 /** The cookie name this SDK's own helpers use. Yours may differ; be consistent. */
 export const TOTYM_SESSION_COOKIE = "totym_session";
 
-export interface TotymServerGateProps {
+/**
+ * How the LOCKED state looks. Not what is protected — that is the same in all three,
+ * because the protected branch is never rendered.
+ *
+ *   block  the default. Show the fallback, and nothing else.
+ *   fade   show a public teaser, dissolving into a gradient, with the fallback below.
+ *   blur   show a public teaser, blurred, with the fallback over it.
+ */
+export type ServerGateStyle = "block" | "fade" | "blur";
+
+interface ServerGateBase {
   /** Base URL of the Totym API — the same one the client uses. */
   apiUrl: string;
   /**
@@ -87,6 +97,49 @@ export interface TotymServerGateProps {
 }
 
 /**
+ * `fade` and `blur` REQUIRE a teaser, and that is a type error rather than a runtime
+ * surprise on purpose.
+ *
+ * ── Why the constraint exists ───────────────────────────────────────────────
+ *
+ * Fade and blur have to render the thing they obscure — you cannot fade what is not
+ * there. On the client that meant the faded content was in the page source, which is
+ * the trap this whole entry point exists to escape.
+ *
+ * Here the server decides which text to send, so the obscured thing has to be something
+ * you are willing to give a non-holder. `teaser` is that thing, named so it cannot be
+ * confused with `children`, and required so nobody reaches for a fade and accidentally
+ * gets one over their protected content. If `style="fade"` silently fell back to
+ * `block`, somebody would ship a page they believed was teasing and was not.
+ *
+ * The teaser is PUBLIC. Every byte of it goes to everybody. That is the honest version
+ * of the newspaper pattern: the part a non-holder can read is the part you chose to
+ * give them.
+ */
+export type TotymServerGateProps = ServerGateBase &
+  (
+    | {
+        style?: "block";
+        /** Not used by `block`, which shows the fallback and nothing else. */
+        teaser?: never;
+        fadeAt?: never;
+      }
+    | {
+        style: "fade";
+        /** Public. Rendered, dissolving, for everybody who does not qualify. */
+        teaser: ReactNode;
+        /** Where the gradient begins, as a percentage. Default "55%". */
+        fadeAt?: string;
+      }
+    | {
+        style: "blur";
+        /** Public. Rendered, blurred, for everybody who does not qualify. */
+        teaser: ReactNode;
+        fadeAt?: never;
+      }
+  );
+
+/**
  * A gate whose refusal is a boundary rather than a presentation.
  *
  * ```tsx
@@ -111,15 +164,8 @@ export interface TotymServerGateProps {
  *
  * `<Secret />` is not in the response for anybody who does not qualify.
  */
-export async function TotymServerGate({
-  apiUrl,
-  token,
-  query,
-  children,
-  fallback = null,
-  unavailable,
-  init,
-}: TotymServerGateProps) {
+export async function TotymServerGate(props: TotymServerGateProps) {
+  const { apiUrl, token, query, children, fallback = null, unavailable, init } = props;
   let holder: TotymHolder | null;
   try {
     holder = await requireTotymAccess({ apiUrl, token, query, init });
@@ -135,8 +181,72 @@ export async function TotymServerGate({
     throw err;
   }
 
-  if (!holder) return <>{fallback}</>;
-  return <>{children}</>;
+  if (holder) return <>{children}</>;
+
+  /**
+   * Denied. The protected branch above was never rendered, so it is not in the response
+   * regardless of which style draws this. All three are presentations OF THE REFUSAL.
+   */
+  if (props.style === "fade") {
+    return (
+      <Dissolved fadeAt={props.fadeAt ?? "55%"}>{props.teaser}</Dissolved>
+    );
+  }
+  if (props.style === "blur") {
+    return <Blurred>{props.teaser}</Blurred>;
+  }
+  return <>{fallback}</>;
+
+  function Dissolved({ children: teaser, fadeAt }: { children: ReactNode; fadeAt: string }) {
+    /**
+     * No height measurement, unlike the client component, which uses a ResizeObserver to
+     * find the content's natural height and clip it. Nothing to clip here: the teaser IS
+     * the visible portion, chosen by whoever wrote the page. So the gradient is the
+     * whole mechanism, and it works without JavaScript.
+     */
+    const gradient = `linear-gradient(to bottom, black 0%, black ${fadeAt}, transparent 100%)`;
+    return (
+      <div>
+        <div
+          aria-hidden="true"
+          style={{
+            WebkitMaskImage: gradient,
+            maskImage: gradient,
+            userSelect: "none",
+            pointerEvents: "none",
+          }}
+        >
+          {teaser}
+        </div>
+        {fallback}
+      </div>
+    );
+  }
+
+  function Blurred({ children: teaser }: { children: ReactNode }) {
+    return (
+      <div style={{ position: "relative" }}>
+        <div
+          aria-hidden="true"
+          style={{ filter: "blur(10px)", userSelect: "none", pointerEvents: "none" }}
+        >
+          {teaser}
+        </div>
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "1rem",
+          }}
+        >
+          {fallback}
+        </div>
+      </div>
+    );
+  }
 }
 
 /**

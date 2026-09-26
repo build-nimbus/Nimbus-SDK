@@ -4,7 +4,7 @@
  * Two jobs:
  *  1. TTL cache (30s) — a wallet's balance doesn't change fast enough to
  *     justify hitting the API on every re-render.
- *  2. In-flight dedupe — if five <TotymGate>s mount with the same query,
+ *  2. In-flight dedupe — if five <TotymReveal>s mount with the same query,
  *     they share one network request instead of stampeding the API.
  *
  * Module-level singleton on purpose: cache scope is "this page load",

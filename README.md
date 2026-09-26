@@ -180,17 +180,29 @@ const { user } = usePrivy();
 <TotymProvider apiUrl="..." wallet={{ address: user?.wallet?.address ?? null }}>
 ```
 
-## What a gate protects, and what it does not
+## Two components, and only one of them is a boundary
 
-`<TotymGate>` decides what to **show**. It is not a boundary, and the difference is
+`<TotymReveal>` (called `TotymGate` before 0.3.0) decides what to **show**, in the
+browser. `<TotymServerGate>` decides what to **send**, on the server. The rename
+happened because the old name read as a boundary and sent people to check devtools,
+which is the one place that cannot tell the difference.
+
+Use `TotymReveal` for teasers and previews: it needs no signature and no cookie, so a
+visitor sees what they are missing without being asked to sign anything. Use
+`TotymServerGate` when the content must not reach a non-holder.
+
+## What a reveal protects, and what it does not
+
+`<TotymReveal>` decides what to **show**. It is not a boundary, and the difference is
 worth being exact about because it is easy to check the wrong evidence and be
 reassured.
 
-| Style | In the rendered markup? | In the response body? |
+| | In the rendered markup? | In the response body? |
 |---|---|---|
-| `block` | no | **yes** |
-| `fade` | yes, dissolved | yes |
-| `blur` | yes, unreadable | yes |
+| `<TotymReveal style="block">` | no | **yes** |
+| `<TotymReveal style="fade">` | yes, dissolved | yes |
+| `<TotymReveal style="blur">` | yes, unreadable | yes |
+| `<TotymServerGate>`, any style | no | **no** |
 
 `fade` and `blur` render children and obscure them — you cannot fade what is not
 there. That has always been documented.
@@ -244,15 +256,23 @@ withholds bytes has to be decided where the bytes are assembled.
 ### Fade and blur, honestly
 
 Fade and blur must render what they obscure, so the visible part can never be protected.
-The way to have both is to let the server decide WHICH TEXT to send: a teaser that is
-public by construction, faded for everybody, and the remainder only in the allow branch.
+`<TotymServerGate>` has all three styles, and for `fade` and `blur` it **requires** a
+`teaser` — a type error, not a runtime surprise:
 
 ```tsx
-<TotymServerGate … fallback={<Faded>{teaser}</Faded>}>
-  {teaser}
-  {remainder}
+<TotymServerGate … style="fade" teaser={<p>{firstParagraph}</p>}>
+  <p>{firstParagraph}</p>
+  <p>{rest}</p>
 </TotymServerGate>
 ```
+
+The teaser is public. Every byte of it goes to everybody, which is the honest version of
+the newspaper pattern: the part a non-holder can read is the part you chose to give them.
+`style="block"` takes no teaser and shows only the fallback.
+
+The requirement exists so nobody reaches for a fade and accidentally gets one over their
+protected content. If `fade` silently fell back to `block`, somebody would ship a page
+they believed was teasing and was not.
 
 A non-holder receives the teaser and nothing else. That is the newspaper model done
 without the pretence: the bytes a non-holder can read are bytes you decided to give

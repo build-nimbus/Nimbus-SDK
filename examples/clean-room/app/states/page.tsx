@@ -5,7 +5,7 @@ import { useTotymAccess } from "@totym/sdk";
 /**
  * 5 — Loading and error states.
  *
- * `<TotymGate>` folds all four states into two outcomes, which is right for a
+ * `<TotymReveal>` folds all four states into two outcomes, which is right for a
  * component and wrong for a page that wants to explain itself. The hook exposes
  * them, and the distinction below is the one that matters:
  *

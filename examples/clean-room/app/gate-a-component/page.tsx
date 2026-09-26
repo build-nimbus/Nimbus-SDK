@@ -1,4 +1,4 @@
-import { TotymGate } from "@totym/sdk";
+import { TotymReveal } from "@totym/sdk";
 
 /**
  * 1 — Gate a component.
@@ -12,12 +12,12 @@ export default function GateAComponent() {
       <h1>Gate a component</h1>
       <p>Everything outside the gate renders for everybody.</p>
 
-      <TotymGate tier="holder">
+      <TotymReveal tier="holder">
         <p style={{ padding: "1rem", background: "#eef", borderRadius: 8 }}>
           Members only. If you can read this, the connected wallet holds at least one
           USDC on Solana.
         </p>
-      </TotymGate>
+      </TotymReveal>
 
       <p>And everything after it renders for everybody too.</p>
     </main>

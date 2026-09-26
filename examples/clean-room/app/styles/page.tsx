@@ -1,4 +1,4 @@
-import { TotymGate } from "@totym/sdk";
+import { TotymReveal } from "@totym/sdk";
 
 /**
  * 3 — Block, fade and blur.
@@ -28,19 +28,19 @@ export default function Styles() {
       <h1>Block, fade and blur</h1>
 
       <h2>block — not in the DOM</h2>
-      <TotymGate tier="holder" style="block">
+      <TotymReveal tier="holder" style="block">
         <p>This paragraph contains {BLOCK_SENTINEL} and a non-holder cannot find it.</p>
-      </TotymGate>
+      </TotymReveal>
 
       <h2>fade — in the DOM, dissolved</h2>
-      <TotymGate tier="holder" style="fade" fadeAt="50%">
+      <TotymReveal tier="holder" style="fade" fadeAt="50%">
         <p>This paragraph contains {FADE_SENTINEL} and a non-holder can find it.</p>
-      </TotymGate>
+      </TotymReveal>
 
       <h2>blur — in the DOM, unreadable</h2>
-      <TotymGate tier="holder" style="blur">
+      <TotymReveal tier="holder" style="blur">
         <p>This paragraph contains {BLUR_SENTINEL} and a non-holder can find it.</p>
-      </TotymGate>
+      </TotymReveal>
 
       <p style={{ marginTop: "2rem", padding: "1rem", background: "#fee", borderRadius: 8 }}>
         <strong>Check this yourself.</strong> With no wallet connected, view the page

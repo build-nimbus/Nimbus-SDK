@@ -63,6 +63,12 @@ imported by a root layout must import from `@totym/sdk/config`.
 No deprecation is needed for the root copies. They work for client code, which is where
 they were reachable from before.
 
+**`TotymGate` is renamed to `TotymReveal`,** and the old name is kept as a deprecated
+alias that still works. It was renamed because the name read as a boundary and the
+component is not one: it decides what to show, and the content it hides has already been
+sent. This is step one of the three below — announce in the types, keep it working. It
+will not be removed before two further minors, and never in a patch.
+
 Also in 0.3.0: `@totym/sdk/rsc`, with `TotymServerGate`, `sessionCookie` and
 `TOTYM_SESSION_COOKIE`. A React Server Component gate that decides before rendering, so
 the protected content is absent from the response rather than hidden in it. All three are

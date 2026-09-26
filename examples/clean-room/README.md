@@ -38,6 +38,12 @@ npm run dev        # or read it in a browser
 Point it at a real API with `NEXT_PUBLIC_TOTYM_API_URL` (client) and `TOTYM_API_URL`
 (server routes). Both default to `https://www.totym.io`.
 
+If you install a newly built tarball over an existing checkout, `rm -rf .next` first.
+Next caches the client-reference manifest, and after an export is renamed a stale cache
+reports `Attempted import error: 'X' is not exported` for something that is plainly in
+the bundle. Cost one build cycle to work out; CI never sees it, because a fresh checkout
+has no cache.
+
 ## The seven patterns
 
 Each is its own route, so it can be read alone and copied whole.

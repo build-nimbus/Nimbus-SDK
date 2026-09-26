@@ -1,4 +1,4 @@
-import { TotymGate } from "@totym/sdk";
+import { TotymReveal } from "@totym/sdk";
 
 /**
  * 4 — Custom denial UI.
@@ -23,9 +23,9 @@ export default function CustomDenial() {
   return (
     <main style={{ maxWidth: "42rem" }}>
       <h1>Custom denial UI</h1>
-      <TotymGate tier="holder" fallback={<NotYet />}>
+      <TotymReveal tier="holder" fallback={<NotYet />}>
         <p>Unlocked.</p>
-      </TotymGate>
+      </TotymReveal>
     </main>
   );
 }

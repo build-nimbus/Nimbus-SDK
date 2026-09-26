@@ -3,7 +3,7 @@
  *
  * ── Why this is a separate entry point ──────────────────────────────────────
  *
- * Everything in the main entry renders. `TotymGate` decides whether to return
+ * Everything in the main entry renders. `TotymReveal` decides whether to return
  * its children, and that is a decision about the VIEW: the markup it withholds
  * was still sent to the browser if the surrounding page fetched it, and the
  * condition it branches on runs on a machine the visitor controls. Hiding is

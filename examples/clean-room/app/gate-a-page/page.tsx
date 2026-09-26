@@ -1,4 +1,4 @@
-import { TotymGate } from "@totym/sdk";
+import { TotymReveal } from "@totym/sdk";
 
 /**
  * 2 — Gate a page.
@@ -17,7 +17,7 @@ import { TotymGate } from "@totym/sdk";
  */
 export default function GateAPage() {
   return (
-    <TotymGate tier="holder" message="Hold 1 USDC on Solana to read this page.">
+    <TotymReveal tier="holder" message="Hold 1 USDC on Solana to read this page.">
       <main style={{ maxWidth: "42rem" }}>
         <h1>A gated page</h1>
         <p>
@@ -25,6 +25,6 @@ export default function GateAPage() {
           see the note in this file.
         </p>
       </main>
-    </TotymGate>
+    </TotymReveal>
   );
 }

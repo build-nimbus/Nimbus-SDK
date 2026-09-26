@@ -7,8 +7,25 @@
 // Components
 export { TotymProvider } from "./components/TotymProvider";
 export type { TotymProviderProps } from "./components/TotymProvider";
-export { TotymGate } from "./components/TotymGate";
-export type { TotymGateProps } from "./components/TotymGate";
+export { TotymReveal } from "./components/TotymReveal";
+export type { TotymRevealProps } from "./components/TotymReveal";
+
+/**
+ * `TotymGate` was renamed to `TotymReveal` in 0.3.0, because the old name read as a
+ * boundary and this component is not one — it decides what to SHOW, and the content it
+ * hides has already been sent. See `TotymServerGate` in `@totym/sdk/rsc` for a refusal
+ * that withholds bytes.
+ *
+ * Kept as an alias so nothing breaks. Step one of the three in VERSIONING.md: announce
+ * in the types, keep it working. It still works, identically.
+ *
+ * @deprecated Renamed to `TotymReveal`. For content that must not reach a non-holder at
+ * all, use `TotymServerGate` from `@totym/sdk/rsc` — this component cannot do that, and
+ * its old name implied it could.
+ */
+export { TotymReveal as TotymGate } from "./components/TotymReveal";
+/** @deprecated Renamed to `TotymRevealProps`. */
+export type { TotymRevealProps as TotymGateProps } from "./components/TotymReveal";
 export { TotymTier } from "./components/TotymTier";
 export type { TotymTierProps, TierMatchProps } from "./components/TotymTier";
 export { TotymWall } from "./components/TotymWall";

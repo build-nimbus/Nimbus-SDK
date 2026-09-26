@@ -63,7 +63,14 @@ export const PUBLIC_EXPORTS: readonly PublicExport[] = [
 
   // Rendering.
   { name: "TotymProvider", entry: "root", stability: "stable" },
-  { name: "TotymGate", entry: "root", stability: "stable" },
+  { name: "TotymReveal", entry: "root", stability: "stable" },
+  /**
+   * The old name, kept working. It was renamed because `TotymGate` reads as a boundary
+   * and this component is not one — it decides what to SHOW, and the content it hides
+   * has already been sent. Step one of the three in VERSIONING.md: announce in the
+   * types, keep it working.
+   */
+  { name: "TotymGate", entry: "root", stability: "experimental", why: "A deprecated alias for TotymReveal. It will be removed, on the schedule in VERSIONING.md — announce, warn, remove, never fewer than three releases and never in a patch." },
   { name: "TotymTier", entry: "root", stability: "stable" },
   { name: "TotymWall", entry: "root", stability: "stable" },
   { name: "TotymButton", entry: "root", stability: "stable" },

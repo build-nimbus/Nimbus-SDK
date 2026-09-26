@@ -7,7 +7,7 @@ import { TotymServerGate, TOTYM_SESSION_COOKIE } from "@totym/sdk/rsc";
  * ── The difference from every other pattern here ─────────────────────────────
  *
  * The six client patterns decide in the browser. That means the content was already in
- * the response before the decision happened — `<TotymGate style="block">` keeps it out
+ * the response before the decision happened — `<TotymReveal style="block">` keeps it out
  * of the DOM and cannot keep it out of `view-source`.
  *
  * This decides on the server. The protected branch is never rendered, so it is never
@@ -34,19 +34,6 @@ const TEASER =
 /** Never sent to a non-holder. */
 const REMAINDER =
   "And this paragraph contains sentinel-withheld-remainder. A visitor who does not qualify never received it — not hidden, not blurred, not in the response.";
-
-function Faded({ children }: { children: React.ReactNode }) {
-  return (
-    <div
-      style={{
-        maskImage: "linear-gradient(to bottom, black 0%, black 55%, transparent 100%)",
-        WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 55%, transparent 100%)",
-      }}
-    >
-      {children}
-    </div>
-  );
-}
 
 export default async function Withheld() {
   const token = (await cookies()).get(TOTYM_SESSION_COOKIE)?.value ?? null;
@@ -75,22 +62,19 @@ export default async function Withheld() {
       <p>
         Fade and blur have to render what they obscure — you cannot fade what is not
         there. So the visible part can never be protected, and pretending otherwise is
-        the whole trap. The way to have both is to decide, on the server, WHICH TEXT to
-        send:
+        the whole trap. `TotymServerGate` makes that a type error: ask for a fade and it
+        REQUIRES a <code>teaser</code>, named so it cannot be confused with the
+        protected children, so nobody reaches for a fade and accidentally gets one over
+        the thing they meant to withhold.
       </p>
       <TotymServerGate
         apiUrl={API_URL}
         token={token}
         query={QUERY}
+        style="fade"
+        teaser={<p>{TEASER}</p>}
         fallback={
-          <>
-            <Faded>
-              <p>{TEASER}</p>
-            </Faded>
-            <p style={{ color: "#555" }}>
-              The rest is not below this — it was never sent.
-            </p>
-          </>
+          <p style={{ color: "#555" }}>The rest is not below this — it was never sent.</p>
         }
         unavailable={<p role="alert">We could not check. Not a refusal.</p>}
       >
