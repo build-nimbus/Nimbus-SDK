@@ -1,6 +1,6 @@
 {
   "name": "@totym/sdk",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Token-gated access for any React app. Wallet ownership \u2192 verification \u2192 access.",
   "license": "MIT",
   "type": "module",
@@ -17,6 +17,11 @@
       "types": "./dist/server.d.ts",
       "import": "./dist/server.js",
       "require": "./dist/server.cjs"
+    },
+    "./config": {
+      "types": "./dist/config.d.ts",
+      "import": "./dist/config.js",
+      "require": "./dist/config.cjs"
     }
   },
   "files": [

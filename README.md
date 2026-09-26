@@ -180,6 +180,34 @@ const { user } = usePrivy();
 <TotymProvider apiUrl="..." wallet={{ address: user?.wallet?.address ?? null }}>
 ```
 
+## What a gate protects, and what it does not
+
+`<TotymGate>` decides what to **show**. It is not a boundary, and the difference is
+worth being exact about because it is easy to check the wrong evidence and be
+reassured.
+
+| Style | In the rendered markup? | In the response body? |
+|---|---|---|
+| `block` | no | **yes** |
+| `fade` | yes, dissolved | yes |
+| `blur` | yes, unreadable | yes |
+
+`fade` and `blur` render children and obscure them — you cannot fade what is not
+there. That has always been documented.
+
+`block` is the one worth reading twice. It keeps children out of the DOM, so devtools
+shows nothing — and in a React Server Components app the server has already serialized
+those children into the flight payload before the client gate runs. The gate can
+refuse to mount them; it cannot un-send them. Measured on a real Next App Router
+build: absent from the rendered markup, present in the response. `view-source` finds
+it.
+
+**So no gate style withholds bytes from a non-holder.** For anything genuinely secret,
+fetch it from a server route that re-verifies:
+[`examples/clean-room/app/api/protected/route.ts`](examples/clean-room/app/api/protected/route.ts)
+is thirty lines and returns `403` for a denial, `503` for a check that could not be
+completed, and the payload only after the check passes.
+
 ## Behavior notes
 
 - **Fails closed.** Loading, errors, disconnected wallets, and misconfigured gates render the locked state — never the content.
@@ -208,6 +236,20 @@ const { user } = usePrivy();
 **`Type '"blur"' has no properties in common with type 'Properties...'` when styling TotymWall or TotymButton** — the `style` prop means two different things in this SDK: on `<TotymGate>` it selects the gate style (`"block" | "fade" | "blur"`); on `<TotymWall>` and `<TotymButton>` it's the standard React CSS style object for theming. Gate styles only exist on `TotymGate` — a wall is already its own presentation.
 
 **`Type '""' is not assignable to type 'TotymChain'`** — editor autocomplete tends to insert `chain=""`. An empty string isn't a chain; either pass a real value (`"solana"`, `"base"`, `"ethereum"`, `"polygon"`) or omit the prop and let detection/config decide.
+
+**`Attempted to call defineConfig() from the server but defineConfig is on the client`** — import it from `@totym/sdk/config`, not `@totym/sdk`. The main entry carries a `"use client"` banner, so anything called from it at module scope is a client function; a `totym.config.ts` imported by a root layout is a server component importing one. Fixed in 0.3.0 by adding the banner-free entry — before that, the documented config pattern could not build in a Next App Router app at all.
+
+**Wrong network / the gate is locked and the balance looks right** — check the chain, in this order. (1) Is the wallet on the chain the gate names? A Base contract read with a wallet connected to Ethereum finds nothing, and correctly reports locked. (2) On EVM, `minimum` is compared in **raw base units** — one token of an 18-decimal ERC-20 is `1000000000000000000`, not `1`. A threshold written for Solana does not transfer. (3) `chain="polygon"` never works: the API serves Ethereum, Base and Robinhood Chain, and answers `400` for anything else, which surfaces as `error` and stays locked.
+
+**Unsupported wallet** — the SDK detects an injected Solana or EVM provider and nothing else. If your app already manages wallets with wallet-adapter, wagmi or Privy, do not fight the detection: pass the connected address to `<TotymProvider wallet={{ address }}>` and the SDK skips its own entirely. A wallet the SDK cannot see is indistinguishable to it from no wallet, which reads as locked.
+
+**RPC failure, and why it must not look like a denial** — a node provider that times out or rate-limits produces `error` on `useTotymAccess`, and `requireTotymAccess` THROWS `TotymUnavailableError` rather than returning `null`. Do not catch that and render a locked state: nobody found out whether the person qualifies, and telling a holder they do not hold their own token is worse than telling them to try again. Return `503`, not `403` — `examples/clean-room/app/api/protected/route.ts` does exactly that, and `npm run e2e` in that example takes the API down mid-run to prove it.
+
+**SSR and hydration** — every component in the main entry is a client component; the `"use client"` banner is in the bundle, so importing one into a server component file works. What does not work is calling a *function* from that entry at module scope on the server — see the `defineConfig` entry above. If you see a hydration mismatch around a gate, it is almost always that the server rendered the locked state (no wallet) and the client then found one: expected, and it settles on the first paint after connection.
+
+**Missing environment variables** — the SDK reads none. `apiUrl` is a prop, deliberately, so there is no variable to forget and no build-time inlining to get wrong. If your own `NEXT_PUBLIC_…` is undefined, `apiUrl` becomes `undefined`, every fetch fails, and the gate reports `error` — which is a configuration failure surfacing as an error rather than as a denial. Give it a default.
+
+**Stale ownership data** — access results are cached client-side for a short window, so selling a token does not lock somebody out on the next render. Call `clearCache()` after an action you know changed a balance. The server guard does its own check per request and does not read that cache; a page that trusts a client result for something that matters is trusting a cache it did not set the policy for.
 
 ## Versioning
 

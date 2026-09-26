@@ -38,4 +38,24 @@ export default defineConfig([
     clean: false,
     treeshake: false,
   },
+  {
+    // ── The parts with no client dependency ─────────────────────────────────
+    //
+    // No banner, for the same reason the server build has none, and found the same
+    // way: by building the documented pattern and watching it fail.
+    //
+    // `defineConfig` is an identity function. It was reachable only from the
+    // banner'd client bundle, so a `totym.config.ts` calling it at module scope and
+    // imported by a root layout — which is what the README describes — could not
+    // build in a Next App Router app. The whole config feature was unusable in the
+    // framework this package's documentation leads with, for all of 0.2.0.
+    //
+    // `clean` is false so this does not wipe either build above.
+    entry: ["src/config.ts"],
+    format: ["esm", "cjs"],
+    dts: true,
+    sourcemap: true,
+    clean: false,
+    treeshake: false,
+  },
 ]);

@@ -48,7 +48,7 @@ function section(title) {
 }
 
 const DIST = join(ROOT, "dist");
-if (!existsSync(join(DIST, "index.js")) || !existsSync(join(DIST, "server.js"))) {
+if (!existsSync(join(DIST, "index.js")) || !existsSync(join(DIST, "server.js")) || !existsSync(join(DIST, "config.js"))) {
   console.error("No build found. Run `npm run build` first — this checks the artifact, not the source.");
   process.exit(1);
 }
@@ -59,15 +59,20 @@ if (!existsSync(join(DIST, "index.js")) || !existsSync(join(DIST, "server.js")))
  * checks the build is a way to have the check depend on what it is checking.
  */
 const stabilitySrc = readFileSync(join(ROOT, "src/stability.ts"), "utf8");
-const declared = [...stabilitySrc.matchAll(/\{\s*name:\s*"([^"]+)",\s*entry:\s*"(root|server)",\s*stability:\s*"(stable|experimental)"/g)].map(
+const declared = [...stabilitySrc.matchAll(/\{\s*name:\s*"([^"]+)",\s*entry:\s*"(root|server|config)",\s*stability:\s*"(stable|experimental)"/g)].map(
   (m) => ({ name: m[1], entry: m[2], stability: m[3] })
 );
 
 section("the declaration parses");
 check(declared.length > 0, "exports were found in src/stability.ts", `${declared.length}`);
-const names = declared.map((d) => d.name);
-check(new Set(names).size === names.length, "each appears once",
-  names.filter((n, i) => names.indexOf(n) !== i).join(", ") || "no duplicates");
+/**
+ * Unique per ENTRY, not per name. `defineConfig` is public from both the root bundle
+ * and `@totym/sdk/config`, and it is a separate promise in each place — a name that
+ * appeared twice in one entry would be the mistake.
+ */
+const keys = declared.map((d) => `${d.entry}:${d.name}`);
+check(new Set(keys).size === keys.length, "each name appears once per entry",
+  keys.filter((k, i) => keys.indexOf(k) !== i).join(", ") || `${keys.length} declarations`);
 
 /**
  * An experimental export must say why. Without the reason, the label is a way to
@@ -86,9 +91,10 @@ section("dist exports exactly what was declared");
 const actual = {
   root: Object.keys(await import(join(DIST, "index.js"))).sort(),
   server: Object.keys(await import(join(DIST, "server.js"))).sort(),
+  config: Object.keys(await import(join(DIST, "config.js"))).sort(),
 };
 
-for (const entry of ["root", "server"]) {
+for (const entry of ["root", "server", "config"]) {
   const want = declared.filter((d) => d.entry === entry).map((d) => d.name).sort();
   const undeclared = actual[entry].filter((n) => !want.includes(n));
   const phantom = want.filter((n) => !actual[entry].includes(n));
@@ -127,6 +133,26 @@ const head = (file) => readFileSync(join(DIST, file), "utf8").slice(0, 200);
 check(head("index.js").includes('"use client"'), "dist/index.js carries the client banner");
 check(!head("server.js").includes('"use client"'), "and dist/server.js does not",
   "a server entry marked as client code is the silent version of this failure");
+
+/**
+ * The banner on this bundle is the bug it was created to fix.
+ *
+ * `defineConfig` is an identity function that shipped only inside the banner'd
+ * client bundle, so a `totym.config.ts` calling it at module scope and imported by a
+ * root layout could not build in a Next App Router app — the pattern the README and
+ * the function's own doc comment both describe. If this bundle ever gains the
+ * banner, that returns, and nothing else about the package looks different.
+ */
+check(!head("config.js").includes('"use client"'), "and neither does dist/config.js",
+  "the banner here would restore the bug this entry point exists to fix");
+
+/**
+ * `clearCache` must not be reachable from the config entry: it mutates a
+ * module-level cache belonging to the client bundle, and a second copy reachable
+ * from a server would be a bug that presents as a caching bug.
+ */
+check(!actual.config.includes("clearCache"), "and the client cache is not reachable from it",
+  "a second copy of a module-level cache is a bug that looks like a caching bug");
 
 console.log(`\n${passed} passed, ${failed} failed`);
 if (failed > 0) process.exit(1);

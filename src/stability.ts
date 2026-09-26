@@ -32,7 +32,7 @@
  * actually be called at runtime and are what a breaking change breaks.
  */
 
-export type Entry = "root" | "server";
+export type Entry = "root" | "server" | "config";
 
 /**
  * `stable` — a breaking change to it ships as a minor WITH a migration note.
@@ -73,10 +73,27 @@ export const PUBLIC_EXPORTS: readonly PublicExport[] = [
   { name: "useTotymTier", entry: "root", stability: "stable" },
   { name: "useTotymWallet", entry: "root", stability: "stable" },
 
-  // Helpers.
+  // Helpers. The pure three are exported from BOTH the root entry (for client code
+  // that already imports from there) and `@totym/sdk/config` (for anything at module
+  // scope or on a server). Listed once per entry, because the check enumerates each
+  // bundle separately and a name is public in each place it appears.
   { name: "defineConfig", entry: "root", stability: "stable" },
   { name: "detectChain", entry: "root", stability: "stable" },
   { name: "clearCache", entry: "root", stability: "stable" },
+
+  /**
+   * `@totym/sdk/config` — no `"use client"` banner, which is the whole reason it
+   * exists. `defineConfig` was reachable only from the banner'd bundle, so the
+   * documented `totym.config.ts` pattern could not build in a Next App Router app
+   * for all of 0.2.0.
+   *
+   * `clearCache` is deliberately absent: it mutates a module-level cache belonging
+   * to the client bundle, and a second copy reachable from the server would be a bug
+   * that looks like a caching bug.
+   */
+  { name: "defineConfig", entry: "config", stability: "stable" },
+  { name: "detectChain", entry: "config", stability: "stable" },
+  { name: "EVM_CHAIN_IDS", entry: "config", stability: "experimental", why: "Same reason as the root copy: the chain set is the least settled thing here." },
 
   {
     name: "EVM_CHAIN_IDS",

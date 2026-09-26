@@ -22,12 +22,28 @@ import { useTotymAccess } from "../hooks/useTotymAccess";
  *           gate CTA floats below. Teaser UX for long-form content.
  *   blur  — content visible but unreadable, lock UI overlaid.
  *
- * IMPORTANT — what each style protects:
- * "block" keeps children out of the DOM for non-holders. "fade" and "blur"
- * RENDER children and obscure them visually — the content exists in the
- * page source by design (you can't fade what isn't rendered). Use fade/blur
- * for conversion teasers. Anything genuinely secret must be fetched from a
- * server route that re-verifies access, regardless of style.
+ * IMPORTANT — what each style protects, and it is less than it sounds:
+ *
+ *   "fade" and "blur" RENDER children and obscure them visually. The content is in
+ *   the page source by design — you cannot fade what is not there. Teasers only.
+ *
+ *   "block" keeps children out of the DOM. It does NOT keep them out of the
+ *   RESPONSE. In a React Server Components app the server serializes a client
+ *   component's children into the flight payload before the client component runs,
+ *   so this gate can refuse to MOUNT them and cannot un-send them. Measured on a
+ *   real Next App Router build: the text behind a blocked gate is absent from the
+ *   rendered markup and present in the response body. `view-source` finds it;
+ *   devtools does not.
+ *
+ * That last sentence is why this comment was rewritten. It used to attach "the
+ * content exists in the page source" to fade and blur only, which implies that
+ * under "block" it does not. A developer who put real content behind "block",
+ * checked devtools and saw nothing would have been reassured by the wrong evidence.
+ *
+ * So: NONE of the three styles withholds bytes from a non-holder. Anything genuinely
+ * secret must be fetched from a server route that re-verifies — see
+ * `@totym/sdk/server` and `examples/clean-room/app/api/protected/route.ts`, where the
+ * payload is built after the check and a non-holder never receives it.
  *
  * Fails closed: loading, errors, disconnected wallets, and misconfigured
  * gates all render the gated state, never the unlocked content.

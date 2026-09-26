@@ -50,6 +50,19 @@ declaration for an export that does not exist.
   `EVM_CHAIN_IDS`, because the set of chains it describes is the thing least settled
   in this package.
 
+## Releases so far
+
+**0.3.0** — adds `@totym/sdk/config`, a banner-free entry point for `defineConfig`,
+`detectChain` and `EVM_CHAIN_IDS`. A minor rather than a patch because it adds exports,
+and the reason it exists is a defect: `defineConfig` shipped only inside the
+`"use client"` bundle, so the `totym.config.ts` pattern documented in the README and in
+the function's own doc comment could not build in a Next App Router app. Nothing in
+0.2.0 needs changing — the root entry still exports all three — but a config file
+imported by a root layout must import from `@totym/sdk/config`.
+
+No deprecation is needed for the root copies. They work for client code, which is where
+they were reachable from before.
+
 ## Deprecation
 
 A public export is removed in three steps, never fewer:

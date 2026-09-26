@@ -53,4 +53,110 @@ jobs:
             echo "dist/server.js carries \"use client\" — the server entry is marked as client code"
             exit 1
           fi
+          if head -c 200 dist/config.js | grep -qF '"use client"'; then
+            echo "dist/config.js carries \"use client\" — defineConfig becomes uncallable from a server component again"
+            exit 1
+          fi
           echo "banner split is correct"
+
+  # The artifact, installed into a separate application, and run.
+  #
+  # ── Why this is a second job and not three more steps ───────────────────────
+  #
+  # Because it tests a different thing. The job above builds and tests the WORKSPACE.
+  # A developer installs a tarball, and the two are not the same artifact: `files`
+  # publishes only `dist`, `tsup` stamps a banner on one of three bundles, and the
+  # `exports` map decides what is reachable. Every one of those can be wrong while the
+  # workspace is fine.
+  #
+  # ── What it already caught ──────────────────────────────────────────────────
+  #
+  # Building the documented `totym.config.ts` pattern failed: `defineConfig` shipped
+  # only inside the `"use client"` bundle, so calling it at module scope and importing
+  # that file from a root layout — a server component — was "Attempted to call
+  # defineConfig() from the server". The config feature was unusable in Next App
+  # Router for all of 0.2.0, and nothing here noticed, because the Totym application
+  # does not use `defineConfig`. It reads gate configuration from a database, so the
+  # feature had no integration at all.
+  #
+  # And the end-to-end run found that `<TotymGate style="block">` keeps children out
+  # of the DOM but not out of the RESPONSE, which the documentation had implied
+  # otherwise.
+  clean-room:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Build and pack the SDK
+        run: |
+          npm ci
+          npm run build
+          npm pack
+          echo "TARBALL=$(ls totym-sdk-*.tgz)" >> "$GITHUB_ENV"
+
+      # Point the example at the tarball, in CI only.
+      #
+      # ── Why the dependency is rewritten rather than installed over ──────────
+      #
+      # `npm install <tarball>` REWRITES package.json to `file:../../totym-sdk-x.y.z.tgz`.
+      # It does that silently, and committing the result would turn this example into a
+      # local-path install pretending to be a registry install — the precise thing it
+      # exists to disprove. That happened once while this job was being written, and
+      # the committed file had to be put back.
+      #
+      # So the rewrite is done here, explicitly, on a checkout nobody commits. The
+      # file in the repository keeps the range a developer would actually type.
+      #
+      # ── And why this is not `npm install` first ─────────────────────────────
+      #
+      # The example declares the version containing the fix it demonstrates, which is
+      # not on the registry yet. A plain install would fail with ETARGET until it is.
+      # The example's README says so in its first paragraph rather than leaving
+      # somebody to find out.
+      - name: Point the example at the tarball and install
+        working-directory: examples/clean-room
+        run: |
+          node -e "
+            const fs = require('fs');
+            const d = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            d.dependencies['@totym/sdk'] = 'file:' + process.env.GITHUB_WORKSPACE + '/' + process.env.TARBALL;
+            fs.writeFileSync('package.json', JSON.stringify(d, null, 2) + '\n');
+          "
+          npm install --no-audit --no-fund
+          git -C "$GITHUB_WORKSPACE" diff --stat examples/clean-room/package.json
+
+      # Bytes, not version numbers.
+      #
+      # A version match would pass if npm had resolved the registry copy — same
+      # version, different code. Comparing the installed bundles against the ones just
+      # built is the only check that cannot be satisfied by the wrong artifact.
+      - name: The installed copy is the one just built
+        working-directory: examples/clean-room
+        run: |
+          set -e
+          for f in index.js server.js config.js; do
+            cmp "node_modules/@totym/sdk/dist/$f" "$GITHUB_WORKSPACE/dist/$f" \
+              && echo "dist/$f matches the build" \
+              || { echo "::error::node_modules/@totym/sdk/dist/$f is NOT the tarball's copy"; exit 1; }
+          done
+
+      - name: Typecheck the example
+        working-directory: examples/clean-room
+        run: npm run typecheck
+
+      - name: Build the example
+        working-directory: examples/clean-room
+        run: npm run build
+
+      # Starts the built app against a stub Totym API and asserts the three answers a
+      # gate can give. The one that matters: an API that cannot answer must produce
+      # 503 and never 403 — a 403 would lock every holder out during an outage and log
+      # it as a clean denial, so the failure would be invisible.
+      - name: End to end
+        working-directory: examples/clean-room
+        run: npm run e2e
