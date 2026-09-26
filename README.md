@@ -100,14 +100,25 @@ const { address } = useAccount();
 
 ## Chains
 
-**Verified today:** `solana` (default) · `ethereum` · `base`
+**Served by the API:** `solana` (default) · `ethereum` (1) · `base` (8453) ·
+`robinhood` (Robinhood Chain, 4663)
 
-`polygon` is present in the `TotymChain` type and in `EVM_CHAIN_IDS`, but the
-API does not serve it: `/api/check-access-evm` answers only chain ids `1`
-(Ethereum) and `8453` (Base), and returns a `400` naming what is served for
-anything else. A `<TotymGate chain="polygon">` therefore surfaces as an `error`
-and stays locked — it fails closed, but it does not work. Do not ship one until
-the endpoint serves 137.
+`robinhood` was added in 0.3.0. Before that the type could not express it while the
+API had served it for months — an understatement rather than an overclaim, and the
+same failure either way: a hand-maintained list drifting from the one the code serves.
+The application's own chain list has been `solana | base | ethereum | robinhood` all
+along.
+
+`polygon` is **deprecated** and will be removed in a future minor. The API does not
+serve chain id 137 and answers `400` for it, so a `<TotymReveal chain="polygon">`
+surfaces as an `error` and stays locked — it fails closed, and it does not work. It is
+marked in the types rather than deleted because removing a member of a public union is
+a breaking change, and `VERSIONING.md` says those are announced before they happen.
+
+Robinhood Chain has no default buy link: there is no verified Uniswap deployment on
+4663 and no confirmed token-page URL shape for Robinscan, so `defaultBuyUrl` returns
+the explorer's base rather than a guess that might 404. Pass `buyUrl` when you know
+better for your token.
 
 Chain is inferred from config or address format; pass `chain` explicitly to override.
 
@@ -313,11 +324,11 @@ completed, and the payload only after the check passes.
 
 **`Type '"blur"' has no properties in common with type 'Properties...'` when styling TotymWall or TotymButton** — the `style` prop means two different things in this SDK: on `<TotymGate>` it selects the gate style (`"block" | "fade" | "blur"`); on `<TotymWall>` and `<TotymButton>` it's the standard React CSS style object for theming. Gate styles only exist on `TotymGate` — a wall is already its own presentation.
 
-**`Type '""' is not assignable to type 'TotymChain'`** — editor autocomplete tends to insert `chain=""`. An empty string isn't a chain; either pass a real value (`"solana"`, `"base"`, `"ethereum"`, `"polygon"`) or omit the prop and let detection/config decide.
+**`Type '""' is not assignable to type 'TotymChain'`** — editor autocomplete tends to insert `chain=""`. An empty string isn't a chain; either pass a real value (`"solana"`, `"base"`, `"ethereum"`, `"robinhood"`) or omit the prop and let detection/config decide.
 
 **`Attempted to call defineConfig() from the server but defineConfig is on the client`** — import it from `@totym/sdk/config`, not `@totym/sdk`. The main entry carries a `"use client"` banner, so anything called from it at module scope is a client function; a `totym.config.ts` imported by a root layout is a server component importing one. Fixed in 0.3.0 by adding the banner-free entry — before that, the documented config pattern could not build in a Next App Router app at all.
 
-**Wrong network / the gate is locked and the balance looks right** — check the chain, in this order. (1) Is the wallet on the chain the gate names? A Base contract read with a wallet connected to Ethereum finds nothing, and correctly reports locked. (2) On EVM, `minimum` is compared in **raw base units** — one token of an 18-decimal ERC-20 is `1000000000000000000`, not `1`. A threshold written for Solana does not transfer. (3) `chain="polygon"` never works: the API serves Ethereum, Base and Robinhood Chain, and answers `400` for anything else, which surfaces as `error` and stays locked.
+**Wrong network / the gate is locked and the balance looks right** — check the chain, in this order. (1) Is the wallet on the chain the gate names? A Base contract read with a wallet connected to Ethereum finds nothing, and correctly reports locked. (2) On EVM, `minimum` is compared in **raw base units** — one token of an 18-decimal ERC-20 is `1000000000000000000`, not `1`. A threshold written for Solana does not transfer. (3) `chain="polygon"` never works and is deprecated for that reason: the API serves Ethereum, Base and Robinhood Chain, and answers `400` for anything else, which surfaces as `error` and stays locked.
 
 **Unsupported wallet** — the SDK detects an injected Solana or EVM provider and nothing else. If your app already manages wallets with wallet-adapter, wagmi or Privy, do not fight the detection: pass the connected address to `<TotymProvider wallet={{ address }}>` and the SDK skips its own entirely. A wallet the SDK cannot see is indistinguishable to it from no wallet, which reads as locked.
 

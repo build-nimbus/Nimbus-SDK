@@ -31,9 +31,9 @@ Not a date — three conditions, so this is checkable rather than aspirational:
 1. **An integration outside Totym.** Everything in this package is exercised today by
    one application written by the same people. A stable API claim made without a
    second integrator is a guess about what other people need.
-2. **The chain list stops moving.** `TotymChain` currently names a chain the API
-   refuses and cannot name one it serves. A type that is wrong in both directions is
-   not a stable interface.
+2. **The chain list stops moving.** Fixed in 0.3.0 — `robinhood` added, `polygon`
+   deprecated — but not yet settled: `polygon`'s removal is still owed, and a union
+   with a member scheduled for deletion is not a stable interface.
 3. **The failure path is exercised by somebody else.** `TotymUnavailableError` exists
    because a check that could not be completed used to surface as a denial. Until an
    outside integrator has handled one, we do not know whether the shape is usable.
@@ -68,6 +68,12 @@ alias that still works. It was renamed because the name read as a boundary and t
 component is not one: it decides what to show, and the content it hides has already been
 sent. This is step one of the three below — announce in the types, keep it working. It
 will not be removed before two further minors, and never in a patch.
+
+**`robinhood` is added to `TotymChain`, and `polygon` is deprecated.** The list was
+wrong in both directions: it named a chain the API refuses and could not name one it
+serves. Adding is additive; the removal of `polygon` is announced here and will happen
+in a later minor, per the three steps below. A gate on `polygon` has never worked — it
+returns `400` and fails closed — so the removal will break code that is already broken.
 
 Also in 0.3.0: `@totym/sdk/rsc`, with `TotymServerGate`, `sessionCookie` and
 `TOTYM_SESSION_COOKIE`. A React Server Component gate that decides before rendering, so
