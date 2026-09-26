@@ -193,6 +193,90 @@ try {
     "you cannot fade what was not rendered — documented, not a defect"
   );
 
+  /**
+   * The strong gate. This is the assertion that answers "can the content be kept out of
+   * the source at all", and the answer is yes — by deciding on the server before
+   * rendering, so the protected branch is never created.
+   *
+   * Checked against the WHOLE response body, not the markup: that is the check the
+   * client gate fails.
+   */
+  section("a server gate withholds the bytes, rather than hiding them");
+
+  const noCookie = await fetch(`http://127.0.0.1:${APP_PORT}/withheld`);
+  const noCookieBody = await noCookie.text();
+  check(noCookie.status === 200, "the page is served without a session", `HTTP ${noCookie.status}`);
+  check(
+    !noCookieBody.includes("sentinel-withheld-block"),
+    "the blocked text is absent from the entire response",
+    "not in the markup and not in the flight payload — never rendered, so never serialized"
+  );
+  check(
+    !noCookieBody.includes("sentinel-withheld-remainder"),
+    "and so is the text behind the fade's teaser",
+    "fade cannot protect what it renders; the server decided not to send the remainder at all"
+  );
+  check(
+    noCookieBody.includes("public"),
+    "while the teaser IS sent, which is the honest part",
+    "the bytes a non-holder can read are bytes you decided to give them"
+  );
+
+  /** Prove the wallet the way a browser would, then ask again. */
+  const session = await fetch(`http://127.0.0.1:${APP_PORT}/api/session`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ token: "stub-token-for-the-clean-room-e2e", expiresIn: 600 }),
+  });
+  const setCookies = session.headers.getSetCookie();
+  check(session.status === 200, "a proof token can be exchanged for a session cookie",
+    `HTTP ${session.status}`);
+  check(
+    setCookies.some((c) => /HttpOnly/i.test(c)),
+    "and the cookie is httpOnly",
+    "a proof token readable by JavaScript is a token any script on the page can take, and nothing would look wrong"
+  );
+  const cookie = setCookies.map((c) => c.split(";")[0]).join("; ");
+
+  mode = "holder";
+  const withCookie = await fetch(`http://127.0.0.1:${APP_PORT}/withheld`, { headers: { cookie } });
+  const withCookieBody = await withCookie.text();
+  check(
+    withCookieBody.includes("sentinel-withheld-block"),
+    "with a session that qualifies, the content is there",
+    `${withCookieBody.length} bytes with a session, ${noCookieBody.length} without. Note the byte counts prove NOTHING here — the locked prose is longer than the text it replaces, so the withheld response is the bigger one. Presence and absence is the evidence; size is not.`
+  );
+  check(withCookieBody.includes("sentinel-withheld-remainder"), "and so is the fade's remainder");
+
+  mode = "denied";
+  const heldNothing = await fetch(`http://127.0.0.1:${APP_PORT}/withheld`, { headers: { cookie } });
+  const heldNothingBody = await heldNothing.text();
+  check(
+    !heldNothingBody.includes("sentinel-withheld-block"),
+    "a session whose wallet holds nothing gets nothing",
+    "the cookie proved a wallet; the wallet did not hold enough. Two separate questions, both answered on the server."
+  );
+
+  /**
+   * An unavailable check must not fall through to the locked state. `TotymServerGate`
+   * rethrows unless given an `unavailable` branch, and this page gives it one, so the
+   * page renders and says so rather than telling a holder they do not hold their token.
+   */
+  mode = "unavailable";
+  const cantCheck = await fetch(`http://127.0.0.1:${APP_PORT}/withheld`, { headers: { cookie } });
+  const cantCheckBody = await cantCheck.text();
+  check(
+    !cantCheckBody.includes("sentinel-withheld-block"),
+    "and an unavailable check still withholds the content",
+    "failing closed"
+  );
+  check(
+    /could not check/i.test(cantCheckBody),
+    "while saying it could not check, rather than that you do not qualify",
+    "an outage and a refusal are different sentences, and only one of them is about the visitor"
+  );
+  mode = "holder";
+
   section("the server guard answers three ways, not two");
 
   mode = "holder";

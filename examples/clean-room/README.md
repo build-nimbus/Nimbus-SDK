@@ -50,7 +50,8 @@ Each is its own route, so it can be read alone and copied whole.
 | `/custom-denial` | Custom denial UI | Say what would get somebody in, not just that they are out. |
 | `/states` | Loading and error | `error` is not a denial. Telling a holder it is, is the bug. |
 | `/connect` | Wallet connection and proof | An address is a claim; a signature is evidence. |
-| `/api/protected` | Server-side verification | The only one here that withholds bytes. |
+| `/api/protected` | Server-side verification | A route that withholds a payload. |
+| `/withheld` | The strong gate, and an honest fade | `<TotymServerGate>` — content absent from the response, not hidden in it. |
 
 ## The one that matters
 
@@ -60,7 +61,7 @@ reads it whatever the gate says. `/styles` demonstrates that on purpose: search 
 page for "demonstration" with no wallet connected and you find it twice, under `fade`
 and `blur`, and not at all under `block`.
 
-`app/api/protected/route.ts` is the other kind. The payload is built **after** the
+`app/withheld/page.tsx` and `app/api/protected/route.ts` are the other kind. The payload is built **after** the
 check, so a non-holder never receives it, and the route answers three ways rather
 than two:
 

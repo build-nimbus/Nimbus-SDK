@@ -48,7 +48,7 @@ function section(title) {
 }
 
 const DIST = join(ROOT, "dist");
-if (!existsSync(join(DIST, "index.js")) || !existsSync(join(DIST, "server.js")) || !existsSync(join(DIST, "config.js"))) {
+if (!existsSync(join(DIST, "index.js")) || !existsSync(join(DIST, "server.js")) || !existsSync(join(DIST, "config.js")) || !existsSync(join(DIST, "rsc.js"))) {
   console.error("No build found. Run `npm run build` first — this checks the artifact, not the source.");
   process.exit(1);
 }
@@ -59,7 +59,7 @@ if (!existsSync(join(DIST, "index.js")) || !existsSync(join(DIST, "server.js")) 
  * checks the build is a way to have the check depend on what it is checking.
  */
 const stabilitySrc = readFileSync(join(ROOT, "src/stability.ts"), "utf8");
-const declared = [...stabilitySrc.matchAll(/\{\s*name:\s*"([^"]+)",\s*entry:\s*"(root|server|config)",\s*stability:\s*"(stable|experimental)"/g)].map(
+const declared = [...stabilitySrc.matchAll(/\{\s*name:\s*"([^"]+)",\s*entry:\s*"(root|server|config|rsc)",\s*stability:\s*"(stable|experimental)"/g)].map(
   (m) => ({ name: m[1], entry: m[2], stability: m[3] })
 );
 
@@ -92,9 +92,10 @@ const actual = {
   root: Object.keys(await import(join(DIST, "index.js"))).sort(),
   server: Object.keys(await import(join(DIST, "server.js"))).sort(),
   config: Object.keys(await import(join(DIST, "config.js"))).sort(),
+  rsc: Object.keys(await import(join(DIST, "rsc.js"))).sort(),
 };
 
-for (const entry of ["root", "server", "config"]) {
+for (const entry of ["root", "server", "config", "rsc"]) {
   const want = declared.filter((d) => d.entry === entry).map((d) => d.name).sort();
   const undeclared = actual[entry].filter((n) => !want.includes(n));
   const phantom = want.filter((n) => !actual[entry].includes(n));
@@ -153,6 +154,27 @@ check(!head("config.js").includes('"use client"'), "and neither does dist/config
  */
 check(!actual.config.includes("clearCache"), "and the client cache is not reachable from it",
   "a second copy of a module-level cache is a bug that looks like a caching bug");
+
+/**
+ * The banner on the RSC bundle would be the worst of the four.
+ *
+ * `TotymServerGate` is the only gate here that withholds bytes, and it does that by
+ * deciding on the server before it renders. A `"use client"` banner would move the
+ * decision into the browser and silently turn it back into the thing it was written to
+ * replace — the content would ship again and nothing would look different.
+ */
+check(!head("rsc.js").includes('"use client"'), "and neither does dist/rsc.js",
+  "a client banner here would move the decision back into the browser and the bytes would ship again");
+
+/**
+ * And the gate must not be reachable from the client entry, for the same reason
+ * `requireTotymAccess` must not be: it would stop being a build error to use it in the
+ * wrong place.
+ */
+const rscOnly = declared.filter((d) => d.entry === "rsc").map((d) => d.name);
+const rscLeaked = rscOnly.filter((n) => actual.root.includes(n));
+check(rscLeaked.length === 0, "and no RSC export is importable from the root entry",
+  rscLeaked.join(", ") || rscOnly.join(", "));
 
 console.log(`\n${passed} passed, ${failed} failed`);
 if (failed > 0) process.exit(1);

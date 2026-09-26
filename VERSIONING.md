@@ -63,6 +63,14 @@ imported by a root layout must import from `@totym/sdk/config`.
 No deprecation is needed for the root copies. They work for client code, which is where
 they were reachable from before.
 
+Also in 0.3.0: `@totym/sdk/rsc`, with `TotymServerGate`, `sessionCookie` and
+`TOTYM_SESSION_COOKIE`. A React Server Component gate that decides before rendering, so
+the protected content is absent from the response rather than hidden in it. All three are
+marked **experimental**: they are new, and they constrain the integration — the proof
+token has to reach the server, which in practice means an httpOnly cookie. The shape of
+that constraint is the part an outside integration is most likely to change, which is
+exactly what `experimental` is for.
+
 ## Deprecation
 
 A public export is removed in three steps, never fewer:

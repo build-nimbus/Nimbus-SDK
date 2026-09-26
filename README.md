@@ -202,8 +202,66 @@ refuse to mount them; it cannot un-send them. Measured on a real Next App Router
 build: absent from the rendered markup, present in the response. `view-source` finds
 it.
 
-**So no gate style withholds bytes from a non-holder.** For anything genuinely secret,
-fetch it from a server route that re-verifies:
+**So no client gate style withholds bytes from a non-holder.**
+
+## The gate that does: `<TotymServerGate>`
+
+Added in 0.3.0, at `@totym/sdk/rsc`. It is a React Server Component, so it decides
+BEFORE it renders — the protected branch is never created, never serialized, and not in
+the response at all. Absent, not hidden.
+
+```tsx
+// app/members/page.tsx — a server component
+import { cookies } from "next/headers";
+import { TotymServerGate, TOTYM_SESSION_COOKIE } from "@totym/sdk/rsc";
+
+export default async function Members() {
+  return (
+    <TotymServerGate
+      apiUrl={process.env.TOTYM_API_URL!}
+      token={(await cookies()).get(TOTYM_SESSION_COOKIE)?.value ?? null}
+      query={{ mint: "…", minimum: 1 }}
+      fallback={<p>Hold one to read this.</p>}
+      unavailable={<p>We could not check. This is not a refusal.</p>}
+    >
+      <Secret />
+    </TotymServerGate>
+  );
+}
+```
+
+Measured on a real Next App Router build, for a server child and a client child: with no
+session the protected text is absent from the whole response; with a session that
+qualifies it is present; with a session whose wallet holds nothing it is absent again.
+
+**What it costs.** The server has to see the proof token, and `proveWallet()` hands that
+token to JavaScript. So the browser posts it once to a route of yours that sets an
+httpOnly cookie — `sessionCookie()` returns the pieces, with `httpOnly` fixed because it
+is the whole point and one word to forget. A browser-only integration cannot use this
+gate, and that is a property of the problem rather than an omission: a gate that
+withholds bytes has to be decided where the bytes are assembled.
+
+### Fade and blur, honestly
+
+Fade and blur must render what they obscure, so the visible part can never be protected.
+The way to have both is to let the server decide WHICH TEXT to send: a teaser that is
+public by construction, faded for everybody, and the remainder only in the allow branch.
+
+```tsx
+<TotymServerGate … fallback={<Faded>{teaser}</Faded>}>
+  {teaser}
+  {remainder}
+</TotymServerGate>
+```
+
+A non-holder receives the teaser and nothing else. That is the newspaper model done
+without the pretence: the bytes a non-holder can read are bytes you decided to give
+them. `examples/clean-room/app/withheld/page.tsx` does exactly this, and
+`npm run e2e` in that example asserts the remainder is absent from the response.
+
+### Or keep it in a route
+
+If a server component does not suit the shape of your app,
 [`examples/clean-room/app/api/protected/route.ts`](examples/clean-room/app/api/protected/route.ts)
 is thirty lines and returns `403` for a denial, `503` for a check that could not be
 completed, and the payload only after the check passes.

@@ -11,7 +11,8 @@ const PATTERNS: [string, string, string][] = [
   ["/custom-denial", "Custom denial UI", "Replace the default wall with your own."],
   ["/states", "Loading and error states", "The two a gate spends most of its life in."],
   ["/connect", "Wallet connection and proof", "Connect, then prove control with a signature."],
-  ["/server", "Server-side verification", "The only one of these that protects anything."],
+  ["/server", "Server-side verification", "A route that withholds a payload."],
+  ["/withheld", "Withheld, not hidden", "The gate that keeps content out of the response entirely — and an honest fade."],
 ];
 
 export default function Home() {

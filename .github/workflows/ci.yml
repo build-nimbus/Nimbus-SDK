@@ -57,6 +57,10 @@ jobs:
             echo "dist/config.js carries \"use client\" — defineConfig becomes uncallable from a server component again"
             exit 1
           fi
+          if head -c 200 dist/rsc.js | grep -qF '"use client"'; then
+            echo "dist/rsc.js carries \"use client\" — TotymServerGate would decide in the browser and ship the bytes again"
+            exit 1
+          fi
           echo "banner split is correct"
 
   # The artifact, installed into a separate application, and run.
@@ -92,12 +96,29 @@ jobs:
           node-version: 20
           cache: npm
 
+      # Packed, then RENAMED to include the commit.
+      #
+      # ── Why the rename is load-bearing ─────────────────────────────────────
+      #
+      # npm caches a `file:` dependency by name and version. Two tarballs both called
+      # `totym-sdk-0.3.0.tgz` with different contents are the same cache entry, so an
+      # install silently serves whichever one npm saw first. That happened while this
+      # job was being written: the example got a 0.3.0 with three entry points instead
+      # of four, `@totym/sdk/rsc` was simply absent, and the typecheck failed with
+      # "Cannot find module" on a module that was definitely in the tarball.
+      #
+      # A version check would have passed — same version, different code — which is why
+      # the step below compares BYTES. It caught this on its first run.
+      #
+      # The commit in the filename gives every build its own cache key. Measured: a
+      # renamed tarball installs the fresh contents; the same name does not.
       - name: Build and pack the SDK
         run: |
           npm ci
           npm run build
           npm pack
-          echo "TARBALL=$(ls totym-sdk-*.tgz)" >> "$GITHUB_ENV"
+          mv totym-sdk-*.tgz "totym-sdk-${{ github.sha }}.tgz"
+          echo "TARBALL=totym-sdk-${{ github.sha }}.tgz" >> "$GITHUB_ENV"
 
       # Point the example at the tarball, in CI only.
       #
@@ -132,14 +153,15 @@ jobs:
 
       # Bytes, not version numbers.
       #
-      # A version match would pass if npm had resolved the registry copy — same
-      # version, different code. Comparing the installed bundles against the ones just
-      # built is the only check that cannot be satisfied by the wrong artifact.
+      # A version match would pass against the registry copy, and — as the step above
+      # records — against a STALE CACHED tarball of the same version. Comparing the
+      # installed bundles against the ones just built is the only check that cannot be
+      # satisfied by the wrong artifact, and it is the check that found that problem.
       - name: The installed copy is the one just built
         working-directory: examples/clean-room
         run: |
           set -e
-          for f in index.js server.js config.js; do
+          for f in index.js server.js config.js rsc.js; do
             cmp "node_modules/@totym/sdk/dist/$f" "$GITHUB_WORKSPACE/dist/$f" \
               && echo "dist/$f matches the build" \
               || { echo "::error::node_modules/@totym/sdk/dist/$f is NOT the tarball's copy"; exit 1; }

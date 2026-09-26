@@ -32,7 +32,7 @@
  * actually be called at runtime and are what a breaking change breaks.
  */
 
-export type Entry = "root" | "server" | "config";
+export type Entry = "root" | "server" | "config" | "rsc";
 
 /**
  * `stable` — a breaking change to it ships as a minor WITH a migration note.
@@ -91,6 +91,22 @@ export const PUBLIC_EXPORTS: readonly PublicExport[] = [
    * to the client bundle, and a second copy reachable from the server would be a bug
    * that looks like a caching bug.
    */
+  /**
+   * `@totym/sdk/rsc` — the only gate in this package that withholds BYTES.
+   *
+   * Every other gate decides what to show in a browser, which means the content was
+   * already sent. This one decides on the server before rendering, so a visitor who
+   * does not qualify never receives the protected branch at all. Measured before it
+   * shipped, for a server child and a client child.
+   *
+   * Experimental, honestly: it is new, it constrains the integration (the proof token
+   * has to reach the server, which means a cookie), and the shape of that constraint is
+   * the part most likely to change once somebody outside Totym has lived with it.
+   */
+  { name: "TotymServerGate", entry: "rsc", stability: "experimental", why: "New, and it constrains the integration — the proof token must reach the server, which in practice means an httpOnly cookie. That constraint's shape is what an outside integration is most likely to change." },
+  { name: "TOTYM_SESSION_COOKIE", entry: "rsc", stability: "experimental", why: "A naming convention rather than a mechanism; it moves if the session shape does." },
+  { name: "sessionCookie", entry: "rsc", stability: "experimental", why: "Same reason as TotymServerGate: it encodes a cookie policy that has had one integration." },
+
   { name: "defineConfig", entry: "config", stability: "stable" },
   { name: "detectChain", entry: "config", stability: "stable" },
   { name: "EVM_CHAIN_IDS", entry: "config", stability: "experimental", why: "Same reason as the root copy: the chain set is the least settled thing here." },
