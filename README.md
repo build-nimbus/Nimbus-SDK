@@ -209,6 +209,20 @@ const { user } = usePrivy();
 
 **`Type '""' is not assignable to type 'TotymChain'`** — editor autocomplete tends to insert `chain=""`. An empty string isn't a chain; either pass a real value (`"solana"`, `"base"`, `"ethereum"`, `"polygon"`) or omit the prop and let detection/config decide.
 
+## Versioning
+
+`0.x`, which under semantic versioning means the public API may change in a minor
+release. [`VERSIONING.md`](VERSIONING.md) says what each bump contains, what `1.0.0`
+will require (three conditions, not a date), how deprecation works, and which exports
+are experimental. The short version: pin with `~0.2.0` rather than `^0.2.0` until
+`1.0.0`, and a change that breaks a working integration ships as a minor with a
+migration note, never as a patch.
+
+Every published version carries a signed provenance attestation binding the tarball to
+the commit and workflow run that built it, and `dist/BUILD` inside the package names
+the same commit in plain text. So "the code I read is the code I installed" is
+checkable rather than trusted.
+
 ## Build
 
 ```bash

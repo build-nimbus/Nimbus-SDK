@@ -31,6 +31,19 @@ jobs:
       # the bundle, the server one must not. A server-only module marked as
       # client code still runs, so nothing breaks loudly — it just quietly
       # stops being the thing the separate entry point exists to guarantee.
+      # The banner split, and the public surface, both read off the BUILT artifact.
+      #
+      # `verify-surface.mjs` checks the same banner split as the shell below, which is
+      # deliberate duplication: the script catches it on a laptop during `npm run
+      # verify:surface`, and the shell catches it even if somebody deletes the script.
+      #
+      # What only the script can catch is an export nobody decided was public. Three
+      # of those existed in the published 0.2.0 — two were the error classes a
+      # developer needs in order to handle failure — and nothing in this repository
+      # noticed until the application repository installed the tarball and counted.
+      - name: The public surface is the declared one
+        run: npm run verify:surface
+
       - name: The server entry must not be marked as client code
         run: |
           set -e
